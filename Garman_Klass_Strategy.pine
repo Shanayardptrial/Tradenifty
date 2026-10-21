@@ -1,5 +1,5 @@
 //@version=6
-strategy(title="Garman-Klass Volatility + Momentum Strategy [TradeNifty Pro Clean]", shorttitle="GK Volatility Strategy", overlay=true, precision=2, initial_capital=40000, default_qty_type=strategy.fixed, default_qty_value=50, commission_type=strategy.commission.cash_per_order, commission_value=20, pyramiding=0)
+strategy(title="Garman-Klass Volatility + Momentum Strategy [TradeNifty Pro Clean Boxes]", shorttitle="GK Volatility Strategy", overlay=true, precision=2, initial_capital=40000, default_qty_type=strategy.fixed, default_qty_value=50, commission_type=strategy.commission.cash_per_order, commission_value=20, pyramiding=0)
 
 // ==========================================
 // ==== 1. Strategy Inputs & Risk Controls ====
@@ -8,19 +8,25 @@ string g_vol = "Garman-Klass Volatility Settings"
 int volMaPeriod = input.int(20, "Volatility MA Period", minval=1, group=g_vol)
 float momentumThresh = input.float(0.15, "Bar Momentum Threshold (0.15 = 15%)", step=0.05, group=g_vol)
 
-string g_risk = "Risk Management (Spot Points)"
-float slSpotPts = input.float(35.0, "Stop Loss (Spot Points)", minval=1.0, step=5.0, group=g_risk)
-float tpSpotPts = input.float(180.0, "Take Profit Target (Spot Points)", minval=1.0, step=10.0, group=g_risk)
+// Auto-detect whether this is an Option chart (scale < 3000) or Spot Index chart (> 15000)
+bool isOptionChart = close < 3000.0
 
-string g_trail = "Trailing Stop Loss (Optional)"
-bool useTrailing = input.bool(true, "Enable Breakeven Trailing after 70 pts", group=g_trail)
-float beTriggerPts = input.float(70.0, "Breakeven Trigger (Spot Points)", minval=10.0, step=5.0, group=g_trail)
+string g_risk = "Risk Management (Auto-Scaled)"
+// Spot default: 35 pt SL / 180 pt TP
+// Option default: 18 pt SL / 90 pt TP
+float slInput = input.float(35.0, "Stop Loss Points (Spot: 35 | Opt: 18)", minval=1.0, group=g_risk)
+float tpInput = input.float(180.0, "Target Points (Spot: 180 | Opt: 90)", minval=1.0, group=g_risk)
+
+float slPts = isOptionChart ? math.min(slInput, 20.0) : slInput
+float tpPts = isOptionChart ? math.min(tpInput, 90.0) : tpInput
+
+// Maximum 1 Trade per session toggle (Clean trade filter)
+bool oneTradePerDay = input.bool(false, "Limit 1 Trade Per Day (Prevents Chop)", group=g_risk)
 
 // ==========================================
 // ==== 2. Technical Calculations & Math ====
 // ==========================================
-// Garman-Klass Volatility Formula:
-// GK = 0.5 * (ln(High/Low))^2 - (2*ln(2) - 1) * (ln(Close/Open))^2
+// Garman-Klass Volatility Formula
 float logHL = math.log(high / math.max(low, 0.0001))
 float logCO = math.log(close / math.max(open, 0.0001))
 float gkVar = 0.5 * math.pow(logHL, 2) - (2.0 * math.log(2.0) - 1.0) * math.pow(logCO, 2)
@@ -34,83 +40,108 @@ bool isVolAccel = gkVol > maVol
 float barRange = high - low
 float candleMomentum = barRange > 0 ? (close - open) / barRange : 0.0
 
+// Daily Trade Counter
+var int tradesToday = 0
+if ta.change(time("D")) != 0
+    tradesToday := 0
+
+bool canTradeToday = not oneTradePerDay or (tradesToday == 0)
+
 // ==========================================
-// ==== 3. Entry & Exit Logic Matrix ====
+// ==== 3. Strict Clean Entry & Exit Matrix ====
 // ==========================================
-// Conditions for trigger
+// Trigger only when Volatility Accelerates AND High Momentum Breaks Out
 bool rawBuyCe = (close > high[1]) and isVolAccel and (candleMomentum > momentumThresh)
 bool rawBuyPe = (close < low[1]) and isVolAccel and (candleMomentum < -momentumThresh)
 
-// Clean Single Trigger: ONLY signal when FLAT (prevents repetitive label clustering)
-bool buyCeCond = rawBuyCe and strategy.position_size == 0
-bool buyPeCond = rawBuyPe and strategy.position_size == 0
+// Strictly trigger ONLY when flat position
+bool buyCeCond = rawBuyCe and strategy.position_size == 0 and canTradeToday
+bool buyPeCond = rawBuyPe and strategy.position_size == 0 and canTradeToday
 
-// Track Execution Levels
+// Active Tracking State
 var float entryPrice = na
 var float slPrice = na
 var float tpPrice = na
-var bool isTrailed = false
+var int entryBarIndex = na
 
-// Reset on Flat Position
-if strategy.position_size == 0
+// Long / Short Drawing Boxes
+var box tpBox = na
+var box slBox = na
+var line entryLine = na
+
+// Execute Long
+if buyCeCond
+    strategy.entry("Long", strategy.long)
+    entryPrice := close
+    slPrice := close - slPts
+    tpPrice := close + tpPts
+    entryBarIndex := bar_index
+    tradesToday := tradesToday + 1
+    
+    // Draw Long Position Tool (Green TP Box UP, Red SL Box DOWN)
+    tpBox := box.new(left=bar_index, top=tpPrice, right=bar_index + 12, bottom=entryPrice, 
+                     border_color=color.new(#10b981, 20), border_width=1,
+                     bgcolor=color.new(#10b981, 82))
+    slBox := box.new(left=bar_index, top=entryPrice, right=bar_index + 12, bottom=slPrice, 
+                     border_color=color.new(#f43f5e, 20), border_width=1,
+                     bgcolor=color.new(#f43f5e, 82))
+    entryLine := line.new(x1=bar_index, y1=entryPrice, x2=bar_index + 12, y2=entryPrice, 
+                          color=#facc15, width=2)
+
+// Execute Short
+if buyPeCond
+    strategy.entry("Short", strategy.short)
+    entryPrice := close
+    slPrice := close + slPts
+    tpPrice := close - tpPts
+    entryBarIndex := bar_index
+    tradesToday := tradesToday + 1
+    
+    // Draw Short Position Tool (Green TP Box DOWN, Red SL Box UP)
+    tpBox := box.new(left=bar_index, top=entryPrice, right=bar_index + 12, bottom=tpPrice, 
+                     border_color=color.new(#10b981, 20), border_width=1,
+                     bgcolor=color.new(#10b981, 82))
+    slBox := box.new(left=bar_index, top=slPrice, right=bar_index + 12, bottom=entryPrice, 
+                     border_color=color.new(#f43f5e, 20), border_width=1,
+                     bgcolor=color.new(#f43f5e, 82))
+    entryLine := line.new(x1=bar_index, y1=entryPrice, x2=bar_index + 12, y2=entryPrice, 
+                          color=#facc15, width=2)
+
+// Extend Active Position Drawing Boxes to Current Bar
+if strategy.position_size != 0
+    if not na(tpBox)
+        box.set_right(tpBox, bar_index + 1)
+    if not na(slBox)
+        box.set_right(slBox, bar_index + 1)
+    if not na(entryLine)
+        line.set_x2(entryLine, bar_index + 1)
+
+// Order Exits with Limit & Stop
+if strategy.position_size > 0
+    strategy.exit("Exit Long", "Long", stop=slPrice, limit=tpPrice, comment_loss="SL Hit", comment_profit="Target Hit")
+
+if strategy.position_size < 0
+    strategy.exit("Exit Short", "Short", stop=slPrice, limit=tpPrice, comment_loss="SL Hit", comment_profit="Target Hit")
+
+// Reset state on flat
+if strategy.position_size == 0 and strategy.position_size[1] != 0
     entryPrice := na
     slPrice := na
     tpPrice := na
-    isTrailed := false
-
-// Long Execution (BUY CE)
-if buyCeCond
-    strategy.entry("Long (CE)", strategy.long)
-    entryPrice := close
-    slPrice := close - slSpotPts
-    tpPrice := close + tpSpotPts
-    isTrailed := false
-
-// Short Execution (BUY PE)
-if buyPeCond
-    strategy.entry("Short (PE)", strategy.short)
-    entryPrice := close
-    slPrice := close + slSpotPts
-    tpPrice := close - tpSpotPts
-    isTrailed := false
-
-// Trailing Breakeven Mechanism
-if useTrailing and strategy.position_size > 0 and not isTrailed
-    if (high - entryPrice) >= beTriggerPts
-        slPrice := entryPrice + 5.0 // trail stop to cost + 5 pts
-        isTrailed := true
-
-if useTrailing and strategy.position_size < 0 and not isTrailed
-    if (entryPrice - low) >= beTriggerPts
-        slPrice := entryPrice - 5.0 // trail stop to cost - 5 pts
-        isTrailed := true
-
-// Orders Management
-if strategy.position_size > 0
-    strategy.exit("Exit CE", "Long (CE)", stop=slPrice, limit=tpPrice, comment_loss="SL CE Hit", comment_profit="TP CE Hit")
-
-if strategy.position_size < 0
-    strategy.exit("Exit PE", "Short (PE)", stop=slPrice, limit=tpPrice, comment_loss="SL PE Hit", comment_profit="TP PE Hit")
 
 // ==========================================
-// ==== 4. Clean Visual Plots (No Clustering) ====
+// ==== 4. Clean Non-Cluttered Visuals ====
 // ==========================================
-// Clean Lines for Active Trade only
-plot(strategy.position_size != 0 ? slPrice : na, "Stop Loss", color=color.new(#f43f5e, 0), style=plot.style_linebr, linewidth=2)
-plot(strategy.position_size != 0 ? tpPrice : na, "Take Profit", color=color.new(#10b981, 0), style=plot.style_linebr, linewidth=2)
-plot(strategy.position_size != 0 ? entryPrice : na, "Entry", color=color.new(#facc15, 30), style=plot.style_linebr, linewidth=1)
+// NO REPETITIVE LABELS ON CANDLES. Labels only exist inside the professional Long/Short boxes.
+// Clean Active Position Level Lines
+plot(strategy.position_size != 0 ? tpPrice : na, "Target Line", color=color.new(#10b981, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? slPrice : na, "Stop Line", color=color.new(#f43f5e, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? entryPrice : na, "Entry Line", color=color.new(#facc15, 0), style=plot.style_linebr, linewidth=2)
 
-// Plot Shape ONLY at the exact entry moment (prevents overlapping tags on every candle)
-plotshape(buyCeCond ? low : na, "BUY CE Signal", shape.labelup, location.belowbar, color=#10b981, size=size.tiny, text="BUY CE", textcolor=color.white)
-plotshape(buyPeCond ? high : na, "BUY PE Signal", shape.labeldown, location.abovebar, color=#f43f5e, size=size.tiny, text="BUY PE", textcolor=color.white)
-
-// Background Tint for Active Trade (Super Clean Visual)
-bgcolor(strategy.position_size > 0 ? color.new(#10b981, 92) : strategy.position_size < 0 ? color.new(#f43f5e, 92) : na, title="Active Trade Zone")
-
-// Compact Stats HUD Dashboard Panel
+// Compact Top-Right HUD Stats
 var table hud = table.new(position.top_right, 2, 5, bgcolor=color.new(#080c16, 20), border_color=color.new(#facc15, 60), border_width=1)
 if barstate.islast
-    table.cell(hud, 0, 0, "MODEL", bgcolor=color.new(#1e293b, 30), text_color=color.white, text_size=size.small)
+    table.cell(hud, 0, 0, "STRATEGY", bgcolor=color.new(#1e293b, 30), text_color=color.white, text_size=size.small)
     table.cell(hud, 1, 0, "GARMAN-KLASS", bgcolor=color.new(#1e293b, 30), text_color=#facc15, text_size=size.small)
     
     table.cell(hud, 0, 1, "GK VOL", bgcolor=color.new(#080c16, 30), text_color=#94a3b8, text_size=size.small)
