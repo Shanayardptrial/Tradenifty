@@ -7,6 +7,14 @@
   if (window.__TRADENIFTY_TV_INJECTED_V12__) return;
   window.__TRADENIFTY_TV_INJECTED_V12__ = true;
 
+  // Suppress benign context invalidation errors during hot reload
+  window.addEventListener('error', (e) => {
+    if (e.message && e.message.includes('Extension context invalidated')) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+
   console.log('%c[TradeNifty Pro]%c TV Auto-Tracking & Position Engine Online', 'background:#00f0ff;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px;', 'color:#00f0ff;font-weight:bold;');
 
   let config = {
@@ -333,10 +341,12 @@
         isDragging = false;
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
-        localStorage.setItem('__tn_tv_hud_pos', JSON.stringify({
-          x: hudElement.offsetLeft,
-          y: hudElement.offsetTop
-        }));
+        try {
+          localStorage.setItem('__tn_tv_hud_pos', JSON.stringify({
+            x: hudElement.offsetLeft,
+            y: hudElement.offsetTop
+          }));
+        } catch (err) {}
       }
     }
   }
