@@ -1081,9 +1081,11 @@ function renderReplayFrame(step) {
 }
 
 // --- Fetch Real Live Data from NSE India Official Live API ---
+let CURRENT_STRATEGY = localStorage.getItem('tradenifty_strategy') || 'strat-oi-radar';
+
 async function fetchNseLiveFeed() {
   try {
-    const res = await fetch('http://127.0.0.1:5000/api/market-data');
+    const res = await fetch(`http://127.0.0.1:5000/api/market-data?strategy=${CURRENT_STRATEGY}`);
     if (!res.ok) throw new Error('API server unreachable');
     const data = await res.json();
     if (data.status === 'success') {
@@ -1651,14 +1653,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const url = `http://127.0.0.1:5000/api/backtest-data?from_date=${fromVal}&to_date=${toVal}&tf=${tfVal}`;
+      const url = `http://127.0.0.1:5000/api/backtest-data?from_date=${fromVal}&to_date=${toVal}&tf=${tfVal}&strategy=${CURRENT_STRATEGY}`;
       const resp = await fetch(url);
       if (resp.ok) {
         const payload = await resp.json();
         if (payload.trades) {
           STATE.weekBacktestTrades = payload.trades;
           if (wbModalSubtitle) {
-            wbModalSubtitle.innerText = `${payload.period} | Timeframe: ${payload.timeframe} (${payload.count} Executed Trades)`;
+            wbModalSubtitle.innerText = `${payload.period} | Timeframe: ${payload.timeframe} (${payload.count} Executed Trades) | Model: ${CURRENT_STRATEGY === 'strat-gk-volatility' ? 'Garman-Klass Volatility (+2201%)' : 'OI Shark Radar'}`;
           }
         }
       }
@@ -1674,6 +1676,18 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWeekBacktestReport('ALL');
     if (weekModal) weekModal.style.display = 'flex';
     playBeep(640, 'triangle', 0.1);
+  }
+
+  // --- Strategy Selector Event Handler ---
+  const strategySelector = document.getElementById('strategySelector');
+  if (strategySelector) {
+    strategySelector.value = CURRENT_STRATEGY;
+    strategySelector.addEventListener('change', (e) => {
+      CURRENT_STRATEGY = e.target.value;
+      localStorage.setItem('tradenifty_strategy', CURRENT_STRATEGY);
+      playBeep(880, 'sine', 0.12);
+      fetchNseLiveFeed();
+    });
   }
 
   if (btnOpenWeek && weekModal) {

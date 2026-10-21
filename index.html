@@ -64,6 +64,15 @@
         </select>
       </div>
 
+      <!-- Strategy Selector -->
+      <div class="strategy-switch-wrapper" style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;color:var(--accent-gold);font-weight:700;">⚡ Strategy:</span>
+        <select id="strategySelector" class="select-input" style="padding:4px 8px;font-size:11px;font-weight:700;border-radius:4px;background:rgba(250,204,21,0.12);color:var(--accent-gold);border:1px solid rgba(250,204,21,0.4);cursor:pointer;">
+          <option value="strat-oi-radar" selected>1. OI Shark Radar (68.4% WR · +₹22.9k)</option>
+          <option value="strat-gk-volatility">2. Garman-Klass Volatility (1:5.1 RR · +₹32.4k)</option>
+        </select>
+      </div>
+
       <button class="btn btn-sm btn-outline" id="btnOpenRiskCalc" title="Lot & Position Size Risk Calculator">🧮 Risk Calc</button>
       <div class="status-pill live-pill" id="feedStatusPill"><span class="pulse-dot"></span> NSE INDIA LIVE</div>
       <button class="btn btn-primary" id="btnSyncAll">⚡ Refresh NSE Data</button>

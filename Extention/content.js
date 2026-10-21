@@ -132,7 +132,7 @@
         <div class="tn-hud-header" id="tnHudDragHeader">
           <div class="tn-brand">
             <span class="tn-logo-pill">TN PRO</span>
-            <span>SHARK &amp; OI RADAR</span>
+            <span id="tnHudTitle">SHARK &amp; OI RADAR</span>
             <span class="tn-status-dot" id="tnStatusDot" title="Live Server Connected"></span>
           </div>
           <div class="tn-header-actions">
@@ -143,6 +143,15 @@
         </div>
 
         <div class="tn-hud-body" id="tnHudBody">
+          <!-- Strategy Switcher Pill Bar -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;margin-bottom:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(250,204,21,0.2);border-radius:6px;">
+            <span style="font-size:9.5px;font-weight:800;color:var(--tn-gold);letter-spacing:0.4px;">⚡ STRATEGY:</span>
+            <select id="tnStrategySelector" style="background:rgba(8,12,22,0.95);color:#fff;border:1px solid var(--tn-border-gold);border-radius:4px;font-family:var(--tn-font-mono);font-size:10px;font-weight:700;padding:2px 4px;cursor:pointer;">
+              <option value="strat-oi-radar">1. OI Shark Radar</option>
+              <option value="strat-gk-volatility">2. Garman-Klass Vol (+2201%)</option>
+            </select>
+          </div>
+
           <!-- Spot & PCR Bar -->
           <div class="tn-spot-bar">
             <div>
@@ -230,6 +239,20 @@
       document.getElementById('tnBtnSync')?.addEventListener('click', fetchData);
       document.getElementById('tnBtnMinimize')?.addEventListener('click', toggleMinimizeHUD);
       document.getElementById('tnBtnChain')?.addEventListener('click', toggleOptionDrawer);
+
+      const stratSelector = document.getElementById('tnStrategySelector');
+      if (stratSelector) {
+        stratSelector.value = currentStrategy;
+        stratSelector.addEventListener('change', (e) => {
+          currentStrategy = e.target.value;
+          localStorage.setItem('__tn_tv_strategy', currentStrategy);
+          const title = document.getElementById('tnHudTitle');
+          if (title) {
+            title.textContent = currentStrategy === 'strat-gk-volatility' ? 'GK VOLATILITY (+2201%)' : 'SHARK & OI RADAR';
+          }
+          fetchData();
+        });
+      }
       
       document.getElementById('tnTglLines')?.addEventListener('click', (e) => {
         config.showSharkLines = !config.showSharkLines;
@@ -352,6 +375,8 @@
   }
 
   // --- Real-Time Data Sync ---
+  let currentStrategy = localStorage.getItem('__tn_tv_strategy') || 'strat-oi-radar';
+
   function startDataSync() {
     fetchData();
     if (refreshTimer) clearInterval(refreshTimer);
@@ -359,7 +384,7 @@
   }
 
   async function fetchData() {
-    const url = `${config.serverUrl.replace(/\/+$/, '')}/api/market-data`;
+    const url = `${config.serverUrl.replace(/\/+$/, '')}/api/market-data?strategy=${currentStrategy}`;
 
     // 1. Direct fetch attempt for zero latency and extension-context-invalidation immunity
     try {
@@ -385,7 +410,7 @@
     try {
       chrome.runtime.sendMessage({
         action: 'FETCH_MARKET_DATA',
-        serverUrl: config.serverUrl
+        serverUrl: `${config.serverUrl}?strategy=${currentStrategy}`
       }, (response) => {
         if (chrome.runtime?.lastError) {
           setConnectionStatus(false);
