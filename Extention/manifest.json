@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "TradeNifty Pro - TradingView Institutional Overlay",
+  "version": "1.0.0",
+  "description": "Auto-plots Institutional Shark Walls, OI Bands, Max Pain, High Volume Nodes, and Real-Time Algorithmic Signals on TradingView.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://*.tradingview.com/*",
+    "https://in.tradingview.com/*",
+    "http://127.0.0.1:5000/*",
+    "http://localhost:5000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.tradingview.com/*",
+        "https://in.tradingview.com/*"
+      ],
+      "css": [
+        "overlay.css"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

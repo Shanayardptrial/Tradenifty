@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TradeNifty Pro - TradingView Overlay</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <div class="brand">
+        <span class="badge">TN PRO</span>
+        <span class="title">TradingView Radar</span>
+      </div>
+      <div class="status-indicator">
+        <span class="status-dot" id="serverStatusDot"></span>
+        <span id="serverStatusText">Connecting...</span>
+      </div>
+    </div>
+
+    <div class="popup-body">
+      <!-- Server Configuration -->
+      <div class="setting-group">
+        <label>TradeNifty Engine URL:</label>
+        <div class="input-with-btn">
+          <input type="text" id="inpServerUrl" value="http://127.0.0.1:5000" class="input-field">
+          <button id="btnTestConn" class="btn-sm">Test</button>
+        </div>
+      </div>
+
+      <!-- Quick Toggles -->
+      <div class="toggles-list">
+        <label class="toggle-item">
+          <span>🦈 Shark Wall Ray Lines</span>
+          <input type="checkbox" id="chkSharkLines" checked>
+        </label>
+        <label class="toggle-item">
+          <span>📊 Open Interest (OI) Bands</span>
+          <input type="checkbox" id="chkOiBands" checked>
+        </label>
+        <label class="toggle-item">
+          <span>🤖 Real-Time Trade Signal HUD</span>
+          <input type="checkbox" id="chkSignalHud" checked>
+        </label>
+        <label class="toggle-item">
+          <span>🏷️ Right Price Axis Badges</span>
+          <input type="checkbox" id="chkAxisBadges" checked>
+        </label>
+        <label class="toggle-item">
+          <span>🔊 Sound Alert on New Signal</span>
+          <input type="checkbox" id="chkSound" checked>
+        </label>
+      </div>
+
+      <!-- Refresh Rate -->
+      <div class="setting-group" style="margin-top: 10px;">
+        <label>Auto-Refresh Rate:</label>
+        <select id="selRefreshRate" class="select-field">
+          <option value="1500">1.5 Seconds (High Speed)</option>
+          <option value="2500" selected>2.5 Seconds (Recommended)</option>
+          <option value="5000">5.0 Seconds (Standard)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <button id="btnSaveSettings" class="btn-primary">Save Settings</button>
+      <a href="https://in.tradingview.com/chart/" target="_blank" class="tv-link">Open TradingView Chart ↗</a>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
