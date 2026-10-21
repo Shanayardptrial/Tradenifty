@@ -1,5 +1,5 @@
 //@version=6
-strategy(title="Garman-Klass Volatility + Momentum Strategy [TradeNifty Pro]", shorttitle="GK Volatility Strategy", overlay=true, precision=2, initial_capital=40000, default_qty_type=strategy.fixed, default_qty_value=50, commission_type=strategy.commission.cash_per_order, commission_value=20, pyramiding=0)
+strategy(title="Garman-Klass Volatility + Momentum Strategy [TradeNifty Pro Clean]", shorttitle="GK Volatility Strategy", overlay=true, precision=2, initial_capital=40000, default_qty_type=strategy.fixed, default_qty_value=50, commission_type=strategy.commission.cash_per_order, commission_value=20, pyramiding=0)
 
 // ==========================================
 // ==== 1. Strategy Inputs & Risk Controls ====
@@ -37,11 +37,13 @@ float candleMomentum = barRange > 0 ? (close - open) / barRange : 0.0
 // ==========================================
 // ==== 3. Entry & Exit Logic Matrix ====
 // ==========================================
-// Long (CE) Condition: Close > Prev High + Volatility Acceleration + Positive Momentum (> +0.15)
-bool buyCeCond = (close > high[1]) and isVolAccel and (candleMomentum > momentumThresh)
+// Conditions for trigger
+bool rawBuyCe = (close > high[1]) and isVolAccel and (candleMomentum > momentumThresh)
+bool rawBuyPe = (close < low[1]) and isVolAccel and (candleMomentum < -momentumThresh)
 
-// Short (PE) Condition: Close < Prev Low + Volatility Acceleration + Negative Momentum (< -0.15)
-bool buyPeCond = (close < low[1]) and isVolAccel and (candleMomentum < -momentumThresh)
+// Clean Single Trigger: ONLY signal when FLAT (prevents repetitive label clustering)
+bool buyCeCond = rawBuyCe and strategy.position_size == 0
+bool buyPeCond = rawBuyPe and strategy.position_size == 0
 
 // Track Execution Levels
 var float entryPrice = na
@@ -57,7 +59,7 @@ if strategy.position_size == 0
     isTrailed := false
 
 // Long Execution (BUY CE)
-if buyCeCond and strategy.position_size <= 0
+if buyCeCond
     strategy.entry("Long (CE)", strategy.long)
     entryPrice := close
     slPrice := close - slSpotPts
@@ -65,7 +67,7 @@ if buyCeCond and strategy.position_size <= 0
     isTrailed := false
 
 // Short Execution (BUY PE)
-if buyPeCond and strategy.position_size >= 0
+if buyPeCond
     strategy.entry("Short (PE)", strategy.short)
     entryPrice := close
     slPrice := close + slSpotPts
@@ -91,29 +93,34 @@ if strategy.position_size < 0
     strategy.exit("Exit PE", "Short (PE)", stop=slPrice, limit=tpPrice, comment_loss="SL PE Hit", comment_profit="TP PE Hit")
 
 // ==========================================
-// ==== 4. Visual Plots & Dashboard Table ====
+// ==== 4. Clean Visual Plots (No Clustering) ====
 // ==========================================
-plot(strategy.position_size != 0 ? slPrice : na, "Stop Loss Level", color=color.new(#f43f5e, 0), style=plot.style_linebr, linewidth=2)
-plot(strategy.position_size != 0 ? tpPrice : na, "Take Profit Level", color=color.new(#10b981, 0), style=plot.style_linebr, linewidth=2)
-plot(strategy.position_size != 0 ? entryPrice : na, "Entry Price", color=color.new(#facc15, 20), style=plot.style_linebr, linewidth=1)
+// Clean Lines for Active Trade only
+plot(strategy.position_size != 0 ? slPrice : na, "Stop Loss", color=color.new(#f43f5e, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? tpPrice : na, "Take Profit", color=color.new(#10b981, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? entryPrice : na, "Entry", color=color.new(#facc15, 30), style=plot.style_linebr, linewidth=1)
 
-plotshape(buyCeCond and strategy.position_size[1] <= 0 ? low : na, "BUY CE Signal", shape.labelup, location.belowbar, color=#10b981, size=size.small, text="BUY CE\nGK VOL", textcolor=color.white)
-plotshape(buyPeCond and strategy.position_size[1] >= 0 ? high : na, "BUY PE Signal", shape.labeldown, location.abovebar, color=#f43f5e, size=size.small, text="BUY PE\nGK VOL", textcolor=color.white)
+// Plot Shape ONLY at the exact entry moment (prevents overlapping tags on every candle)
+plotshape(buyCeCond ? low : na, "BUY CE Signal", shape.labelup, location.belowbar, color=#10b981, size=size.tiny, text="BUY CE", textcolor=color.white)
+plotshape(buyPeCond ? high : na, "BUY PE Signal", shape.labeldown, location.abovebar, color=#f43f5e, size=size.tiny, text="BUY PE", textcolor=color.white)
 
-// HUD Stats Dashboard Panel on Chart
-var table hud = table.new(position.top_right, 2, 5, bgcolor=color.new(#0b0e14, 15), border_color=color.new(#facc15, 50), border_width=1)
+// Background Tint for Active Trade (Super Clean Visual)
+bgcolor(strategy.position_size > 0 ? color.new(#10b981, 92) : strategy.position_size < 0 ? color.new(#f43f5e, 92) : na, title="Active Trade Zone")
+
+// Compact Stats HUD Dashboard Panel
+var table hud = table.new(position.top_right, 2, 5, bgcolor=color.new(#080c16, 20), border_color=color.new(#facc15, 60), border_width=1)
 if barstate.islast
-    table.cell(hud, 0, 0, "MODEL", bgcolor=color.new(#1e293b, 20), text_color=color.white, text_size=size.small)
-    table.cell(hud, 1, 0, "GARMAN-KLASS", bgcolor=color.new(#1e293b, 20), text_color=#facc15, text_size=size.small)
+    table.cell(hud, 0, 0, "MODEL", bgcolor=color.new(#1e293b, 30), text_color=color.white, text_size=size.small)
+    table.cell(hud, 1, 0, "GARMAN-KLASS", bgcolor=color.new(#1e293b, 30), text_color=#facc15, text_size=size.small)
     
-    table.cell(hud, 0, 1, "GK VOL", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
-    table.cell(hud, 1, 1, str.tostring(gkVol, "#.#####"), bgcolor=color.new(#0b0e14, 20), text_color=isVolAccel ? #10b981 : #f43f5e, text_size=size.small)
+    table.cell(hud, 0, 1, "GK VOL", bgcolor=color.new(#080c16, 30), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 1, str.tostring(gkVol, "#.#####"), bgcolor=color.new(#080c16, 30), text_color=isVolAccel ? #10b981 : #f43f5e, text_size=size.small)
     
-    table.cell(hud, 0, 2, "VOL ACCEL", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
-    table.cell(hud, 1, 2, isVolAccel ? "ACCELERATING" : "NORMAL", bgcolor=color.new(#0b0e14, 20), text_color=isVolAccel ? #10b981 : #94a3b8, text_size=size.small)
+    table.cell(hud, 0, 2, "VOL ACCEL", bgcolor=color.new(#080c16, 30), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 2, isVolAccel ? "ACCELERATING" : "NORMAL", bgcolor=color.new(#080c16, 30), text_color=isVolAccel ? #10b981 : #94a3b8, text_size=size.small)
 
-    table.cell(hud, 0, 3, "MOMENTUM", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
-    table.cell(hud, 1, 3, str.tostring(candleMomentum, "+#.##;-#.##"), bgcolor=color.new(#0b0e14, 20), text_color=candleMomentum > 0 ? #10b981 : #f43f5e, text_size=size.small)
+    table.cell(hud, 0, 3, "MOMENTUM", bgcolor=color.new(#080c16, 30), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 3, str.tostring(candleMomentum, "+#.##;-#.##"), bgcolor=color.new(#080c16, 30), text_color=candleMomentum > 0 ? #10b981 : #f43f5e, text_size=size.small)
 
-    table.cell(hud, 0, 4, "STATUS", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
-    table.cell(hud, 1, 4, strategy.position_size > 0 ? "LONG (CE)" : strategy.position_size < 0 ? "SHORT (PE)" : "FLAT (WAIT)", bgcolor=color.new(#0b0e14, 20), text_color=strategy.position_size > 0 ? #10b981 : strategy.position_size < 0 ? #f43f5e : #cbd5e1, text_size=size.small)
+    table.cell(hud, 0, 4, "STATUS", bgcolor=color.new(#080c16, 30), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 4, strategy.position_size > 0 ? "LONG (CE)" : strategy.position_size < 0 ? "SHORT (PE)" : "FLAT (WAIT)", bgcolor=color.new(#080c16, 30), text_color=strategy.position_size > 0 ? #10b981 : strategy.position_size < 0 ? #f43f5e : #cbd5e1, text_size=size.small)
