@@ -145,165 +145,594 @@ body.theme-institutional-light .tile-title {
   color: var(--text-main);
 }
 
-/* UI THEME 6: Fire & Ice Dual Neon (from Image 1) */
+/* ==========================================================================
+   UI THEME 6: Fire & Ice Dual Neon (Direct match to Image 1)
+   ========================================================================== */
 body.theme-fire-ice {
-  --bg-primary: #060b14;
-  --bg-secondary: #0b1320;
-  --bg-tertiary: #101c2e;
-  --bg-hover: #192a44;
-  --border-color: #1e3352;
-  --border-subtle: #122033;
+  --bg-primary: #040812;
+  --bg-secondary: #081020;
+  --bg-tertiary: #0e1a30;
+  --bg-hover: #162847;
+  --border-color: #1e3860;
+  --border-subtle: #10223d;
   --text-main: #f0f6fc;
   --text-muted: #8bb2d9;
-  --text-dim: #4b6f96;
+  --text-dim: #4d739e;
   --accent-blue: #00d2ff;
   --accent-cyan: #00f0ff;
   --green-pos: #00e5ff;
-  --green-glow: rgba(0, 229, 255, 0.35);
-  --red-neg: #ff6600;
-  --red-glow: rgba(255, 102, 0, 0.35);
+  --green-glow: rgba(0, 229, 255, 0.4);
+  --red-neg: #ff5500;
+  --red-glow: rgba(255, 85, 0, 0.4);
   --yellow-highlight: #ffaa00;
-  --atm-bg: rgba(255, 170, 0, 0.15);
-  --itm-call-bg: rgba(0, 210, 255, 0.08);
-  --itm-put-bg: rgba(255, 102, 0, 0.08);
-}
-body.theme-fire-ice .metric-card:nth-child(odd) {
-  border: 1px solid rgba(0, 210, 255, 0.6);
-  box-shadow: 0 0 14px rgba(0, 210, 255, 0.25);
-}
-body.theme-fire-ice .metric-card:nth-child(even) {
-  border: 1px solid rgba(255, 102, 0, 0.6);
-  box-shadow: 0 0 14px rgba(255, 102, 0, 0.25);
-}
-body.theme-fire-ice .quick-trade-btn.buy-ce {
-  background: linear-gradient(135deg, #00d2ff 0%, #0066ff 100%);
-  box-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
-  border: 1px solid #00f0ff;
-}
-body.theme-fire-ice .quick-trade-btn.buy-pe {
-  background: linear-gradient(135deg, #ff6600 0%, #ff0055 100%);
-  box-shadow: 0 0 8px rgba(255, 102, 0, 0.5);
-  border: 1px solid #ffaa00;
-}
-body.theme-fire-ice .trade-banner {
-  box-shadow: 0 0 20px rgba(255, 102, 0, 0.3);
-  border: 1.5px solid #ff6600;
+  --atm-bg: rgba(255, 170, 0, 0.16);
+  --itm-call-bg: rgba(0, 210, 255, 0.07);
+  --itm-put-bg: rgba(255, 85, 0, 0.07);
+  background: radial-gradient(circle at 15% 15%, rgba(0, 210, 255, 0.09) 0%, transparent 40%),
+              radial-gradient(circle at 85% 15%, rgba(255, 102, 0, 0.09) 0%, transparent 40%),
+              #040812 !important;
 }
 
-/* UI THEME 7: Synthwave Cyber Neon (from Image 2) */
+/* Fire & Ice Top Header & Ticker */
+body.theme-fire-ice .terminal-header {
+  background: linear-gradient(90deg, #071120 0%, #0d1a30 50%, #160d0a 100%);
+  border-bottom: 1.5px solid #1e3860;
+}
+body.theme-fire-ice .spot-ticker-card {
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  box-shadow: 0 0 12px rgba(0, 210, 255, 0.15);
+}
+
+/* Trade Decision Banner - Fiery Orange Glow (Image 1) */
+body.theme-fire-ice .trade-decision-banner {
+  background: linear-gradient(90deg, rgba(0, 210, 255, 0.1) 0%, #0b1426 50%, rgba(255, 102, 0, 0.15) 100%) !important;
+  border: 1.5px solid #ff6600 !important;
+  border-bottom: 2px solid #ff6600 !important;
+  box-shadow: 0 0 25px rgba(255, 102, 0, 0.35), inset 0 0 15px rgba(255, 102, 0, 0.1) !important;
+  border-radius: 6px;
+  margin: 6px 16px;
+}
+body.theme-fire-ice .signal-tag.buy-pe {
+  background: linear-gradient(135deg, #ff6600 0%, #ff2200 100%) !important;
+  color: #fff !important;
+  border: 1.5px solid #ffaa00 !important;
+  box-shadow: 0 0 18px rgba(255, 102, 0, 0.8) !important;
+  font-weight: 900;
+  border-radius: 6px;
+}
+body.theme-fire-ice .signal-tag.buy-ce {
+  background: linear-gradient(135deg, #00d2ff 0%, #0066ff 100%) !important;
+  color: #000 !important;
+  border: 1.5px solid #00f0ff !important;
+  box-shadow: 0 0 18px rgba(0, 210, 255, 0.8) !important;
+  font-weight: 900;
+  border-radius: 6px;
+}
+
+/* Today's PnL Strip */
+body.theme-fire-ice .today-pnl-strip {
+  background: linear-gradient(90deg, #050d1a 0%, #09162a 50%, #140d0a 100%);
+  border-bottom: 1px solid #1e3860;
+}
+
+/* Metric Cards - Dual Tone Split (Left 3 Cyan, Right 4 Flame Orange) */
+body.theme-fire-ice .analytics-ribbon .metric-card:nth-child(1),
+body.theme-fire-ice .analytics-ribbon .metric-card:nth-child(2),
+body.theme-fire-ice .analytics-ribbon .metric-card:nth-child(3) {
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.08) 0%, rgba(6, 15, 28, 0.95) 100%) !important;
+  border: 1.5px solid #00d2ff !important;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.3) !important;
+  border-radius: 8px;
+}
+body.theme-fire-ice .analytics-ribbon .metric-card:nth-child(4),
+body.theme-fire-ice .analytics-ribbon .metric-card:nth-child(5),
+body.theme-fire-ice .analytics-ribbon .metric-card:nth-child(6),
+body.theme-fire-ice .analytics-ribbon .metric-card:nth-child(7) {
+  background: linear-gradient(180deg, rgba(255, 102, 0, 0.08) 0%, rgba(20, 10, 8, 0.95) 100%) !important;
+  border: 1.5px solid #ff6600 !important;
+  box-shadow: 0 0 15px rgba(255, 102, 0, 0.3) !important;
+  border-radius: 8px;
+}
+
+/* Option Chain - Dual Flame & Ice Neon Framed Matrix (Direct match to Image 1) */
+body.theme-fire-ice .table-wrapper {
+  background: #040812;
+  padding: 4px;
+}
+body.theme-fire-ice .call-super-header {
+  background: linear-gradient(180deg, rgba(0, 210, 255, 0.28) 0%, rgba(0, 210, 255, 0.08) 100%) !important;
+  color: #00f0ff !important;
+  border-top: 2px solid #00d2ff !important;
+  border-left: 2px solid #00d2ff !important;
+  border-right: 2px solid #00d2ff !important;
+  border-bottom: 1px solid rgba(0, 210, 255, 0.4) !important;
+  text-shadow: 0 0 10px rgba(0, 210, 255, 0.8) !important;
+  font-weight: 800 !important;
+}
+body.theme-fire-ice .put-super-header {
+  background: linear-gradient(180deg, rgba(255, 102, 0, 0.28) 0%, rgba(255, 102, 0, 0.08) 100%) !important;
+  color: #ff7700 !important;
+  border-top: 2px solid #ff6600 !important;
+  border-left: 2px solid #ff6600 !important;
+  border-right: 2px solid #ff6600 !important;
+  border-bottom: 1px solid rgba(255, 102, 0, 0.4) !important;
+  text-shadow: 0 0 10px rgba(255, 102, 0, 0.8) !important;
+  font-weight: 800 !important;
+}
+body.theme-fire-ice .strike-super-header {
+  background: #091322 !important;
+  color: #ffffff !important;
+  border-top: 1.5px solid #1e3860 !important;
+  border-bottom: 1.5px solid #1e3860 !important;
+}
+
+/* Lateral Borders enclosing the CALLS and PUTS blocks */
+body.theme-fire-ice .option-chain-table th:nth-child(1),
+body.theme-fire-ice .option-chain-table td:nth-child(1) {
+  border-left: 2px solid #00d2ff !important;
+}
+body.theme-fire-ice .option-chain-table th:nth-child(8),
+body.theme-fire-ice .option-chain-table td:nth-child(8) {
+  border-right: 2px solid #00d2ff !important;
+}
+body.theme-fire-ice .option-chain-table th:nth-child(11),
+body.theme-fire-ice .option-chain-table td:nth-child(11) {
+  border-left: 2px solid #ff6600 !important;
+}
+body.theme-fire-ice .option-chain-table th:nth-child(18),
+body.theme-fire-ice .option-chain-table td:nth-child(18) {
+  border-right: 2px solid #ff6600 !important;
+}
+
+/* Table Cells Subtle Ambiance */
+body.theme-fire-ice .option-chain-table td:nth-child(-n+8) {
+  background: rgba(0, 210, 255, 0.02);
+}
+body.theme-fire-ice .option-chain-table td:nth-child(n+11) {
+  background: rgba(255, 102, 0, 0.02);
+}
+body.theme-fire-ice .option-chain-table tr.atm-row {
+  background: rgba(255, 170, 0, 0.18) !important;
+  border-top: 2px solid #ffaa00 !important;
+  border-bottom: 2px solid #ffaa00 !important;
+  box-shadow: 0 0 18px rgba(255, 170, 0, 0.4) inset !important;
+}
+
+/* Quick Trade Buttons in table */
+body.theme-fire-ice .quick-trade-btn.buy-ce {
+  background: linear-gradient(135deg, #00d2ff 0%, #0066ff 100%) !important;
+  color: #000 !important;
+  border: 1px solid #00f0ff !important;
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.6) !important;
+  font-weight: 800 !important;
+}
+body.theme-fire-ice .quick-trade-btn.buy-pe {
+  background: linear-gradient(135deg, #ff6600 0%, #ff2200 100%) !important;
+  color: #fff !important;
+  border: 1px solid #ffaa00 !important;
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.6) !important;
+  font-weight: 800 !important;
+}
+
+/* Multi-Charts split glow */
+body.theme-fire-ice .chart-tile:nth-child(1) {
+  border: 1.5px solid #00d2ff !important;
+  box-shadow: 0 0 18px rgba(0, 210, 255, 0.25) !important;
+}
+body.theme-fire-ice .chart-tile:nth-child(2) {
+  border: 1.5px solid #ff6600 !important;
+  box-shadow: 0 0 18px rgba(255, 102, 0, 0.25) !important;
+}
+
+/* ==========================================================================
+   UI THEME 7: Synthwave Cyber Neon (Direct match to Image 2)
+   ========================================================================== */
 body.theme-synthwave-neon {
-  --bg-primary: #060814;
-  --bg-secondary: #0c1024;
-  --bg-tertiary: #131938;
-  --bg-hover: #1c244f;
-  --border-color: #27316b;
-  --border-subtle: #161b3d;
+  --bg-primary: #050714;
+  --bg-secondary: #0a0d24;
+  --bg-tertiary: #111638;
+  --bg-hover: #192050;
+  --border-color: #232c66;
+  --border-subtle: #141a40;
   --text-main: #f1f5f9;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
   --accent-blue: #00f0ff;
   --accent-cyan: #00f0ff;
   --green-pos: #00f0ff;
-  --green-glow: rgba(0, 240, 255, 0.35);
-  --red-neg: #ec4899;
-  --red-glow: rgba(236, 72, 153, 0.35);
+  --green-glow: rgba(0, 240, 255, 0.4);
+  --red-neg: #ff007f;
+  --red-glow: rgba(255, 0, 127, 0.4);
   --yellow-highlight: #facc15;
-  --atm-bg: rgba(250, 204, 21, 0.16);
+  --atm-bg: rgba(250, 204, 21, 0.2);
   --itm-call-bg: rgba(0, 240, 255, 0.08);
-  --itm-put-bg: rgba(236, 72, 153, 0.08);
-}
-body.theme-synthwave-neon .metric-card {
-  border-radius: 8px;
-  border: 1.5px solid rgba(0, 240, 255, 0.45);
-  box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
-}
-body.theme-synthwave-neon .metric-card:nth-child(3n) {
-  border-color: rgba(250, 204, 21, 0.55);
-  box-shadow: 0 0 12px rgba(250, 204, 21, 0.25);
-}
-body.theme-synthwave-neon .metric-card:nth-child(3n+1) {
-  border-color: rgba(236, 72, 153, 0.55);
-  box-shadow: 0 0 12px rgba(236, 72, 153, 0.25);
-}
-body.theme-synthwave-neon .atm-row {
-  border: 2px solid #facc15 !important;
-  box-shadow: 0 0 15px rgba(250, 204, 21, 0.35) inset, 0 0 15px rgba(250, 204, 21, 0.35);
+  --itm-put-bg: rgba(255, 0, 127, 0.08);
+  background: radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 45%),
+              radial-gradient(circle at 100% 50%, rgba(255, 0, 127, 0.08) 0%, transparent 45%),
+              #050714 !important;
 }
 
-/* UI THEME 8: Royal Amethyst Velvet (from Image 3) */
+/* Header & Tickers */
+body.theme-synthwave-neon .terminal-header {
+  background: linear-gradient(90deg, #090c24 0%, #11163d 50%, #1a0b22 100%);
+  border-bottom: 1.5px solid #232c66;
+}
+body.theme-synthwave-neon .spot-ticker-card {
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+}
+
+/* Trade Decision Banner - Hot Pink & Magenta (Image 2) */
+body.theme-synthwave-neon .trade-decision-banner {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.1) 0%, #0d122e 50%, rgba(255, 0, 127, 0.15) 100%) !important;
+  border: 1.5px solid #ff007f !important;
+  box-shadow: 0 0 25px rgba(255, 0, 127, 0.35) !important;
+  border-radius: 8px;
+  margin: 6px 16px;
+}
+body.theme-synthwave-neon .signal-tag.buy-pe {
+  background: linear-gradient(135deg, #ff007f 0%, #d946ef 100%) !important;
+  color: #fff !important;
+  border: 1.5px solid #f472b6 !important;
+  box-shadow: 0 0 18px rgba(255, 0, 127, 0.8) !important;
+  border-radius: 8px;
+  font-weight: 800;
+}
+body.theme-synthwave-neon .signal-tag.buy-ce {
+  background: linear-gradient(135deg, #00f0ff 0%, #3b82f6 100%) !important;
+  color: #000 !important;
+  border: 1.5px solid #67e8f9 !important;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.8) !important;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+/* Metric Cards - Tri-Color Neon Rotation (Cyan, Hot Pink, Lime Yellow) */
+body.theme-synthwave-neon .metric-card {
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, rgba(17, 22, 56, 0.9) 0%, rgba(9, 12, 32, 0.95) 100%) !important;
+}
+body.theme-synthwave-neon .analytics-ribbon .metric-card:nth-child(3n+1) {
+  border: 1.5px solid #00f0ff !important;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.35) !important;
+}
+body.theme-synthwave-neon .analytics-ribbon .metric-card:nth-child(3n+2) {
+  border: 1.5px solid #facc15 !important;
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.35) !important;
+}
+body.theme-synthwave-neon .analytics-ribbon .metric-card:nth-child(3n) {
+  border: 1.5px solid #ff007f !important;
+  box-shadow: 0 0 14px rgba(255, 0, 127, 0.35) !important;
+}
+
+/* Option Chain - 3-Way Neon Columns (Cyan CE, Lime Yellow Strike, Hot Pink PE) */
+body.theme-synthwave-neon .call-super-header {
+  background: linear-gradient(180deg, rgba(0, 240, 255, 0.25) 0%, rgba(0, 240, 255, 0.08) 100%) !important;
+  color: #00f0ff !important;
+  border-top: 2px solid #00f0ff !important;
+  border-left: 2px solid #00f0ff !important;
+  border-right: 2px solid #00f0ff !important;
+  border-bottom: 1.5px solid #00f0ff !important;
+  text-shadow: 0 0 12px #00f0ff !important;
+  font-weight: 800 !important;
+}
+body.theme-synthwave-neon .strike-super-header {
+  background: linear-gradient(180deg, rgba(250, 204, 21, 0.25) 0%, rgba(250, 204, 21, 0.08) 100%) !important;
+  color: #facc15 !important;
+  border-top: 2px solid #facc15 !important;
+  border-left: 2px solid #facc15 !important;
+  border-right: 2px solid #facc15 !important;
+  border-bottom: 1.5px solid #facc15 !important;
+  text-shadow: 0 0 12px #facc15 !important;
+  font-weight: 800 !important;
+}
+body.theme-synthwave-neon .put-super-header {
+  background: linear-gradient(180deg, rgba(255, 0, 127, 0.25) 0%, rgba(255, 0, 127, 0.08) 100%) !important;
+  color: #ff007f !important;
+  border-top: 2px solid #ff007f !important;
+  border-left: 2px solid #ff007f !important;
+  border-right: 2px solid #ff007f !important;
+  border-bottom: 1.5px solid #ff007f !important;
+  text-shadow: 0 0 12px #ff007f !important;
+  font-weight: 800 !important;
+}
+
+/* Lateral column framing */
+body.theme-synthwave-neon .option-chain-table th:nth-child(1),
+body.theme-synthwave-neon .option-chain-table td:nth-child(1) {
+  border-left: 2px solid #00f0ff !important;
+}
+body.theme-synthwave-neon .option-chain-table th:nth-child(8),
+body.theme-synthwave-neon .option-chain-table td:nth-child(8) {
+  border-right: 2px solid #00f0ff !important;
+}
+body.theme-synthwave-neon .option-chain-table th:nth-child(9),
+body.theme-synthwave-neon .option-chain-table td:nth-child(9) {
+  border-left: 2px solid #facc15 !important;
+}
+body.theme-synthwave-neon .option-chain-table th:nth-child(10),
+body.theme-synthwave-neon .option-chain-table td:nth-child(10) {
+  border-right: 2px solid #facc15 !important;
+}
+body.theme-synthwave-neon .option-chain-table th:nth-child(11),
+body.theme-synthwave-neon .option-chain-table td:nth-child(11) {
+  border-left: 2px solid #ff007f !important;
+}
+body.theme-synthwave-neon .option-chain-table th:nth-child(18),
+body.theme-synthwave-neon .option-chain-table td:nth-child(18) {
+  border-right: 2px solid #ff007f !important;
+}
+
+/* ATM Row Glowing Cyber Yellow Beam (Direct match to Image 2) */
+body.theme-synthwave-neon .option-chain-table tr.atm-row {
+  background: rgba(250, 204, 21, 0.24) !important;
+  border-top: 2.5px solid #facc15 !important;
+  border-bottom: 2.5px solid #facc15 !important;
+  box-shadow: 0 0 25px rgba(250, 204, 21, 0.6) inset, 0 0 20px rgba(250, 204, 21, 0.6) !important;
+}
+body.theme-synthwave-neon .option-chain-table tr.atm-row td {
+  border-top: 2.5px solid #facc15 !important;
+  border-bottom: 2.5px solid #facc15 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+body.theme-synthwave-neon .quick-trade-btn.buy-ce {
+  background: #00f0ff !important;
+  color: #000 !important;
+  box-shadow: 0 0 10px #00f0ff !important;
+  border-radius: 4px;
+}
+body.theme-synthwave-neon .quick-trade-btn.buy-pe {
+  background: #ff007f !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px #ff007f !important;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   UI THEME 8: Royal Amethyst Velvet (Direct match to Image 3)
+   ========================================================================== */
 body.theme-amethyst-violet {
-  --bg-primary: #0f0a1c;
-  --bg-secondary: #17102b;
-  --bg-tertiary: #21173d;
-  --bg-hover: #2e2054;
-  --border-color: #432e78;
-  --border-subtle: #241842;
+  --bg-primary: #0a0517;
+  --bg-secondary: #130a2a;
+  --bg-tertiary: #1e1140;
+  --bg-hover: #2d1a5e;
+  --border-color: #4c268a;
+  --border-subtle: #29144d;
   --text-main: #f5f0ff;
   --text-muted: #c4b5fd;
-  --text-dim: #7c68ad;
+  --text-dim: #8b72b8;
   --accent-blue: #a855f7;
   --accent-cyan: #c084fc;
   --green-pos: #34d399;
-  --green-glow: rgba(52, 211, 153, 0.25);
+  --green-glow: rgba(52, 211, 153, 0.3);
   --red-neg: #f43f5e;
-  --red-glow: rgba(244, 63, 94, 0.25);
+  --red-glow: rgba(244, 63, 94, 0.3);
   --yellow-highlight: #f59e0b;
-  --atm-bg: rgba(192, 132, 252, 0.16);
-  --itm-call-bg: rgba(168, 85, 247, 0.08);
-  --itm-put-bg: rgba(244, 63, 94, 0.08);
-}
-body.theme-amethyst-violet .metric-card {
-  border: 1.5px solid rgba(192, 132, 252, 0.5);
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.22);
-}
-body.theme-amethyst-violet .nav-tab.active {
-  color: #c084fc;
-  border-bottom-color: #c084fc;
-  text-shadow: 0 0 10px rgba(192, 132, 252, 0.6);
-}
-body.theme-amethyst-violet .trade-banner {
-  border: 1.5px solid rgba(192, 132, 252, 0.4);
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+  --atm-bg: rgba(192, 132, 252, 0.2);
+  --itm-call-bg: rgba(168, 85, 247, 0.09);
+  --itm-put-bg: rgba(244, 63, 94, 0.09);
+  background: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.14) 0%, transparent 55%),
+              radial-gradient(circle at 0% 100%, rgba(192, 132, 252, 0.08) 0%, transparent 50%),
+              #0a0517 !important;
 }
 
-/* UI THEME 9: Emerald Gold Royale (from Image 4) */
+/* Header & Tickers */
+body.theme-amethyst-violet .terminal-header {
+  background: linear-gradient(90deg, #100826 0%, #1c0e3d 50%, #100826 100%);
+  border-bottom: 1.5px solid #4c268a;
+}
+body.theme-amethyst-violet .spot-ticker-card {
+  border: 1px solid rgba(192, 132, 252, 0.5);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.25);
+}
+
+/* Trade Decision Banner - Royal Velvet Fuchsia (Image 3) */
+body.theme-amethyst-violet .trade-decision-banner {
+  background: linear-gradient(90deg, #180c30 0%, #261247 50%, #180c30 100%) !important;
+  border: 1.5px solid #c084fc !important;
+  border-bottom: 2px solid #c084fc !important;
+  box-shadow: 0 0 25px rgba(192, 132, 252, 0.35) !important;
+  border-radius: 8px;
+  margin: 6px 16px;
+}
+body.theme-amethyst-violet .signal-tag.buy-pe {
+  background: linear-gradient(135deg, #f43f5e 0%, #c084fc 100%) !important;
+  color: #fff !important;
+  border: 1.5px solid #f472b6 !important;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.6) !important;
+  border-radius: 8px;
+  font-weight: 800;
+}
+body.theme-amethyst-violet .signal-tag.buy-ce {
+  background: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%) !important;
+  color: #fff !important;
+  border: 1.5px solid #c084fc !important;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.6) !important;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+/* Metric Cards - Amethyst Velvet Neon Pill Boxes (Image 3) */
+body.theme-amethyst-violet .metric-card {
+  border: 1.5px solid #a855f7 !important;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.3) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, #1b0e38 0%, #0d061c 100%) !important;
+}
+body.theme-amethyst-violet .nav-tab.active {
+  color: #c084fc !important;
+  border-bottom: 2px solid #c084fc !important;
+  text-shadow: 0 0 12px rgba(192, 132, 252, 0.8) !important;
+}
+
+/* Option Chain - Velvet Super Headers */
+body.theme-amethyst-violet .call-super-header {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.28) 0%, rgba(168, 85, 247, 0.08) 100%) !important;
+  color: #e9d5ff !important;
+  border: 1.5px solid #a855f7 !important;
+  border-bottom: none !important;
+  text-shadow: 0 0 10px #c084fc !important;
+  font-weight: 800 !important;
+}
+body.theme-amethyst-violet .strike-super-header {
+  background: #180c30 !important;
+  color: #ffffff !important;
+  border: 1.5px solid #a855f7 !important;
+  border-bottom: none !important;
+}
+body.theme-amethyst-violet .put-super-header {
+  background: linear-gradient(180deg, rgba(217, 70, 239, 0.28) 0%, rgba(217, 70, 239, 0.08) 100%) !important;
+  color: #f5d0fe !important;
+  border: 1.5px solid #d946ef !important;
+  border-bottom: none !important;
+  text-shadow: 0 0 10px #d946ef !important;
+  font-weight: 800 !important;
+}
+
+/* Table outer framing */
+body.theme-amethyst-violet .table-wrapper {
+  border: 1.5px solid #4c268a;
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.2);
+  border-radius: 6px;
+}
+body.theme-amethyst-violet .option-chain-table tr.atm-row {
+  background: rgba(168, 85, 247, 0.22) !important;
+  border-top: 2px solid #c084fc !important;
+  border-bottom: 2px solid #c084fc !important;
+  box-shadow: 0 0 20px rgba(192, 132, 252, 0.45) inset !important;
+}
+
+/* ==========================================================================
+   UI THEME 9: Emerald Gold Royale (Direct match to Image 4)
+   ========================================================================== */
 body.theme-emerald-gold {
-  --bg-primary: #03130d;
-  --bg-secondary: #071f16;
-  --bg-tertiary: #0c2d20;
-  --bg-hover: #123d2c;
-  --border-color: #b4861b;
-  --border-subtle: #194a36;
+  --bg-primary: #02120a;
+  --bg-secondary: #052114;
+  --bg-tertiary: #0a3320;
+  --bg-hover: #10452c;
+  --border-color: #d4af37;
+  --border-subtle: #16402b;
   --text-main: #f0fdf4;
   --text-muted: #86efac;
-  --text-dim: #3b7e5e;
-  --accent-blue: #eab308;
-  --accent-cyan: #10b981;
+  --text-dim: #3d8060;
+  --accent-blue: #ffd700;
+  --accent-cyan: #00ff88;
   --green-pos: #00ff88;
-  --green-glow: rgba(0, 255, 136, 0.35);
+  --green-glow: rgba(0, 255, 136, 0.4);
   --red-neg: #ff3366;
-  --red-glow: rgba(255, 51, 102, 0.35);
+  --red-glow: rgba(255, 51, 102, 0.4);
   --yellow-highlight: #fbbf24;
-  --atm-bg: rgba(0, 255, 136, 0.18);
+  --atm-bg: rgba(0, 255, 136, 0.22);
   --itm-call-bg: rgba(0, 255, 136, 0.08);
   --itm-put-bg: rgba(255, 51, 102, 0.08);
+  background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.12) 0%, transparent 50%),
+              radial-gradient(circle at 50% 50%, rgba(0, 255, 136, 0.07) 0%, transparent 60%),
+              #02120a !important;
 }
+
+/* Header & Tickers - 24K Gold Trim */
+body.theme-emerald-gold .terminal-header {
+  background: linear-gradient(90deg, #041c11 0%, #082d1c 50%, #041c11 100%);
+  border-bottom: 2px solid #d4af37;
+}
+body.theme-emerald-gold .spot-ticker-card {
+  border: 1.5px solid #d4af37;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+/* Trade Decision Banner - 24K Gold Bar (Image 4) */
+body.theme-emerald-gold .trade-decision-banner {
+  background: linear-gradient(90deg, #062316 0%, #0d3b25 50%, #062316 100%) !important;
+  border: 1.5px solid #d4af37 !important;
+  border-bottom: 2px solid #ffd700 !important;
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.4) !important;
+  border-radius: 8px;
+  margin: 6px 16px;
+}
+body.theme-emerald-gold .signal-tag.buy-pe {
+  background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%) !important;
+  color: #000 !important;
+  border: 1.5px solid #ffe57f !important;
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.7) !important;
+  border-radius: 8px;
+  font-weight: 900;
+}
+body.theme-emerald-gold .signal-tag.buy-ce {
+  background: linear-gradient(135deg, #00ff88 0%, #059669 100%) !important;
+  color: #000 !important;
+  border: 1.5px solid #6ee7b7 !important;
+  box-shadow: 0 0 18px rgba(0, 255, 136, 0.7) !important;
+  border-radius: 8px;
+  font-weight: 900;
+}
+
+/* Metric Cards - 24K Gold Metallic Trim & Jade Interior (Image 4) */
 body.theme-emerald-gold .metric-card {
-  border: 1.5px solid rgba(234, 179, 8, 0.65);
-  box-shadow: 0 0 12px rgba(234, 179, 8, 0.2);
+  border: 1.5px solid #d4af37 !important;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.3) !important;
+  border-radius: 10px !important;
+  background: linear-gradient(180deg, #08291a 0%, #02120a 100%) !important;
+}
+body.theme-emerald-gold .metric-card .m-title {
+  color: #86efac !important;
+  font-weight: 600;
 }
 body.theme-emerald-gold .nav-tab.active {
-  color: #fbbf24;
-  border-bottom-color: #fbbf24;
-  text-shadow: 0 0 10px rgba(234, 179, 8, 0.6);
+  color: #ffd700 !important;
+  border-bottom: 2px solid #ffd700 !important;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.8) !important;
 }
-body.theme-emerald-gold .trade-banner {
-  border: 1.5px solid rgba(234, 179, 8, 0.7);
-  box-shadow: 0 0 20px rgba(234, 179, 8, 0.25);
+
+/* Option Chain - Central Radiant Emerald Pillar (Direct match to Image 4) */
+body.theme-emerald-gold .call-super-header {
+  background: linear-gradient(180deg, rgba(0, 255, 136, 0.22) 0%, rgba(0, 255, 136, 0.08) 100%) !important;
+  color: #00ff88 !important;
+  border: 1.5px solid #00ff88 !important;
+  border-bottom: none !important;
+  text-shadow: 0 0 10px #00ff88 !important;
+  font-weight: 800 !important;
 }
-body.theme-emerald-gold .atm-row {
-  border: 2px solid #00ff88 !important;
-  box-shadow: 0 0 16px rgba(0, 255, 136, 0.35) inset, 0 0 16px rgba(0, 255, 136, 0.35);
+body.theme-emerald-gold .strike-super-header {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.35) 0%, rgba(212, 175, 55, 0.12) 100%) !important;
+  color: #ffd700 !important;
+  border: 2px solid #d4af37 !important;
+  border-bottom: none !important;
+  text-shadow: 0 0 10px #ffd700 !important;
+  font-weight: 800 !important;
+}
+body.theme-emerald-gold .put-super-header {
+  background: linear-gradient(180deg, rgba(255, 51, 102, 0.22) 0%, rgba(255, 51, 102, 0.08) 100%) !important;
+  color: #ff3366 !important;
+  border: 1.5px solid #ff3366 !important;
+  border-bottom: none !important;
+  text-shadow: 0 0 10px #ff3366 !important;
+  font-weight: 800 !important;
+}
+
+/* Central STRIKE & PCR Radiant Column */
+body.theme-emerald-gold .option-chain-table th:nth-child(9),
+body.theme-emerald-gold .option-chain-table td:nth-child(9),
+body.theme-emerald-gold .option-chain-table th:nth-child(10),
+body.theme-emerald-gold .option-chain-table td:nth-child(10) {
+  background: linear-gradient(180deg, rgba(0, 255, 136, 0.16) 0%, rgba(0, 255, 136, 0.08) 100%) !important;
+  border-left: 2px solid #00ff88 !important;
+  border-right: 2px solid #00ff88 !important;
+  color: #ffffff !important;
+}
+
+/* ATM Row Radiant Jade Burst (Image 4) */
+body.theme-emerald-gold .option-chain-table tr.atm-row {
+  background: rgba(0, 255, 136, 0.26) !important;
+  border-top: 2px solid #00ff88 !important;
+  border-bottom: 2px solid #00ff88 !important;
+  box-shadow: 0 0 25px rgba(0, 255, 136, 0.6) inset, 0 0 25px rgba(0, 255, 136, 0.5) !important;
+}
+body.theme-emerald-gold .option-chain-table tr.atm-row td {
+  border-top: 2px solid #00ff88 !important;
+  border-bottom: 2px solid #00ff88 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
 }
 
 * {
