@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeNifty Pro | Advanced Nifty 50 Derivatives Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Lightweight Charts for professional trading view charts -->
+  <script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body class="dark-terminal">
+  <!-- Top Global Header -->
+  <header class="terminal-header">
+    <div class="brand-section">
+      <div class="logo-badge">TN 50</div>
+      <div class="title-meta">
+        <h1>TRADENIFTY PRO</h1>
+        <span class="subtext">INSTITUTIONAL DERIVATIVES ENGINE</span>
+      </div>
+    </div>
+
+    <!-- Live NIFTY Spot Ticker -->
+    <div class="spot-ticker-card" id="spotTicker">
+      <div class="ticker-col">
+        <span class="badge-label">NIFTY 50 SPOT</span>
+        <div class="price-val" id="niftySpot">22,811.35</div>
+      </div>
+      <div class="ticker-col">
+        <span class="badge-label">CHANGE</span>
+        <div class="pnl-val neg" id="niftyChange">-77.60 (-0.34%)</div>
+      </div>
+      <div class="ticker-stat">
+        <span class="stat-k">INDIA VIX</span>
+        <span class="stat-v" id="vixVal">13.24</span>
+      </div>
+      <div class="ticker-stat">
+        <span class="stat-k">PCR (OI)</span>
+        <span class="stat-v neg" id="headerPcr">0.82</span>
+      </div>
+      <div class="ticker-stat">
+        <span class="stat-k">MAX PAIN</span>
+        <span class="stat-v highlight" id="headerMaxPain">22,800</span>
+      </div>
+    </div>
+
+    <!-- Global Controls -->
+    <div class="header-actions">
+      <!-- 5 Distinct UI Theme Switcher -->
+      <div class="theme-switch-wrapper" style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;color:var(--text-muted);font-weight:600;">🎨 UI:</span>
+        <select id="themeSelector" class="select-input" style="padding:4px 8px;font-size:11px;font-weight:700;border-radius:4px;background:var(--bg-tertiary);color:var(--text-main);border:1px solid var(--border-color);">
+          <option value="theme-bloomberg" selected>1. Bloomberg Pro (Dark)</option>
+          <option value="theme-matrix">2. Matrix Cyberpunk</option>
+          <option value="theme-tradingview">3. Nordic Oceanic (Eye-Soft Slate)</option>
+          <option value="theme-luxury-gold">4. Tokyo Velvet (Obsidian Eye-Care)</option>
+          <option value="theme-institutional-light">5. Warm Sepia (Zero-Glare Day)</option>
+        </select>
+      </div>
+
+      <button class="btn btn-sm btn-outline" id="btnOpenRiskCalc" title="Lot & Position Size Risk Calculator">🧮 Risk Calc</button>
+      <div class="status-pill live-pill" id="feedStatusPill"><span class="pulse-dot"></span> NSE INDIA LIVE</div>
+      <button class="btn btn-primary" id="btnSyncAll">⚡ Refresh NSE Data</button>
+      <button class="btn btn-secondary" id="btnToggleAudio">🔊 Sound: ON</button>
+    </div>
+  </header>
+
+  <!-- Real-Time AI Quantitative Trade Signal Alert Box -->
+  <div class="trade-decision-banner" id="tradeDecisionBanner">
+    <div class="decision-left">
+      <div class="signal-tag" id="sigActionBadge">CALCULATING...</div>
+      <div class="signal-details">
+        <div class="sig-main-title" id="sigContract">NIFTY ATM CONTRACT</div>
+        <div class="sig-reason" id="sigReason">Analyzing 20-EMA, RSI (14), Option Chain PCR & Max Pain...</div>
+      </div>
+    </div>
+    <div class="decision-right">
+      <div class="sig-stat-box">
+        <span class="lbl">ENTRY TIME</span>
+        <span class="val highlight" id="sigEntryTime">--:--:--</span>
+      </div>
+      <div class="sig-stat-box">
+        <span class="lbl">ENTRY TRIGGER</span>
+        <span class="val" id="sigEntry">₹0.00</span>
+      </div>
+      <div class="sig-stat-box">
+        <span class="lbl">CURRENT LTP</span>
+        <span class="val" id="sigLiveLtp">₹0.00</span>
+      </div>
+      <div class="sig-stat-box">
+        <span class="lbl">TRADE STATUS</span>
+        <span class="val" id="sigTradeStatus">CALCULATING</span>
+      </div>
+      <div class="sig-stat-box">
+        <span class="lbl">STOP LOSS (-28%)</span>
+        <span class="val neg" id="sigStopLoss">₹0.00</span>
+      </div>
+      <div class="sig-stat-box">
+        <span class="lbl">TARGET 1 (+35%)</span>
+        <span class="val pos" id="sigTarget1">₹0.00</span>
+      </div>
+      <div class="sig-stat-box">
+        <span class="lbl">TARGET 2 (+65%)</span>
+        <span class="val pos" id="sigTarget2">₹0.00</span>
+      </div>
+      <div class="sig-stat-box">
+        <span class="lbl">AI CONFIDENCE</span>
+        <span class="val highlight" id="sigConfidence">--%</span>
+      </div>
+      <button class="btn btn-sm" id="btnOpenGeminiExplain" style="background:linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);color:#fff;font-weight:700;border:none;box-shadow:0 0 12px rgba(217,70,239,0.4);white-space:nowrap;padding:6px 12px;font-size:11px;cursor:pointer;">
+        🧠 AI Opinion (Kyu?)
+      </button>
+    </div>
+  </div>
+
+  <!-- Today's P&L and Intraday Hit/Loss Performance Tracker Strip -->
+  <div class="today-pnl-strip">
+    <div class="pnl-summary-group">
+      <div class="pnl-summary-item main-pnl">
+        <span class="label">TODAY'S NET P&amp;L</span>
+        <span class="value pos" id="todayNetPnl">+₹10,125.00</span>
+      </div>
+      <div class="pnl-summary-item">
+        <span class="label">TOTAL TRADES</span>
+        <span class="value" id="todayTotalTrades">5</span>
+      </div>
+      <div class="pnl-summary-item hit-stat">
+        <span class="label">TARGET HIT (WIN)</span>
+        <span class="value pos" id="todayWins">4</span>
+      </div>
+      <div class="pnl-summary-item loss-stat">
+        <span class="label">STOP LOSS (LOSS)</span>
+        <span class="value neg" id="todayLosses">1</span>
+      </div>
+      <div class="pnl-summary-item">
+        <span class="label">WIN ACCURACY</span>
+        <span class="value highlight" id="todayWinRate">80.0%</span>
+      </div>
+      <div class="pnl-summary-item">
+        <span class="label">PROFIT FACTOR</span>
+        <span class="value" id="todayProfitFactor">6.06</span>
+      </div>
+    </div>
+    <div class="pnl-action-group" style="display:flex;gap:8px;">
+      <button class="btn btn-sm btn-outline" id="btnViewTradeHistory">📜 Today's Ledger</button>
+      <button class="btn btn-sm btn-primary" id="btnOpenWeekBacktest" style="background:linear-gradient(135deg, #00f0ff 0%, #0077ff 100%);color:#000;font-weight:700;">⏳ 1-Month Backtest Report</button>
+    </div>
+  </div>
+
+  <!-- 1-Month Comprehensive Backtest Modal -->
+  <div class="modal-overlay" id="weekBacktestModal" style="display: none;">
+    <div class="modal-card wide-modal" style="max-width: 900px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="icon">📊</span>
+          <div>
+            <h3>Custom Algorithmic Backtest Engine (Python Driven)</h3>
+            <p id="wbModalSubtitle">Past 20 Trading Sessions Strategy Execution Analysis</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseWeekModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Python Custom Date Range Backtest Control Bar -->
+        <div style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text-muted);font-weight:600;">📅 From:</span>
+              <input type="date" id="btFromDate" value="2026-09-22" class="text-input" style="padding:4px 8px;font-size:12px;font-weight:700;">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text-muted);font-weight:600;">📅 To:</span>
+              <input type="date" id="btToDate" value="2026-10-21" class="text-input" style="padding:4px 8px;font-size:12px;font-weight:700;">
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text-muted);font-weight:600;">⏱️ Timeframe:</span>
+              <select id="btTimeframe" class="select-input" style="padding:4px 8px;font-size:12px;font-weight:700;">
+                <option value="5m" selected>5-Minute (Default Pro)</option>
+                <option value="15m">15-Minute (Swing)</option>
+                <option value="1d">Daily Breakout</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btnExecutePythonBacktest" style="background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:#000;font-weight:700;padding:6px 16px;">
+            ⚡ Run Python Backtest
+          </button>
+        </div>
+
+        <!-- 6 Key Quantitative Cards -->
+        <div class="history-metrics-row" style="grid-template-columns: repeat(6, 1fr);margin-bottom:12px;">
+          <div class="h-metric">
+            <span class="k">Weekly Net P&amp;L</span>
+            <span class="v pos" id="wbNetPnl">+₹51,523.00</span>
+          </div>
+          <div class="h-metric">
+            <span class="k">Total Trades</span>
+            <span class="v" id="wbTotalTrades">23 Trades</span>
+          </div>
+          <div class="h-metric">
+            <span class="k">Target Hits (TP)</span>
+            <span class="v pos" id="wbHits">17 Hits (73.9%)</span>
+          </div>
+          <div class="h-metric">
+            <span class="k">Stop Losses (SL)</span>
+            <span class="v neg" id="wbLosses">6 SL (26.1%)</span>
+          </div>
+          <div class="h-metric">
+            <span class="k">Profit Factor</span>
+            <span class="v highlight" id="wbProfitFactor">3.98</span>
+          </div>
+          <div class="h-metric">
+            <span class="k">Max Drawdown</span>
+            <span class="v neg" id="wbMaxDd">-3.8%</span>
+          </div>
+        </div>
+
+        <!-- Day-by-Day Summary Strip -->
+        <div class="week-days-pills-bar" id="wbDaysBar" style="display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;">
+          <!-- Dynamically populated day badges -->
+        </div>
+
+        <!-- Backtest Trade Log Table -->
+        <div class="table-container history-table-container" style="max-height: 280px;">
+          <table class="data-table" id="weekBacktestTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Contract</th>
+                <th>Signal</th>
+                <th>Entry (₹)</th>
+                <th>Exit (₹)</th>
+                <th>Lots</th>
+                <th>Status</th>
+                <th>P&amp;L (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="weekBacktestBody">
+              <!-- Dynamically populated in script.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnDismissWeekModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Trade History Modal -->
+  <div class="modal-overlay" id="tradeHistoryModal" style="display: none;">
+    <div class="modal-card wide-modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="icon">📈</span>
+          <div>
+            <h3>Today's Algorithmic Trade Ledger</h3>
+            <p>Executed intraday AI signals, Entry, Exit, Target/SL Status and Realized P&amp;L</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseTradeHistoryModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="history-metrics-row">
+          <div class="h-metric"><span class="k">Total Realized P&amp;L</span><span class="v pos" id="mTotalPnl">+₹12,450.00</span></div>
+          <div class="h-metric"><span class="k">Hit Trades</span><span class="v pos" id="mHits">4</span></div>
+          <div class="h-metric"><span class="k">SL Trades</span><span class="v neg" id="mLosses">1</span></div>
+          <div class="h-metric"><span class="k">Win Rate</span><span class="v highlight" id="mWinRate">80.0%</span></div>
+        </div>
+        <div class="table-container history-table-container">
+          <table class="data-table" id="todayTradeHistoryTable">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Contract</th>
+                <th>Signal</th>
+                <th>Entry (₹)</th>
+                <th>Exit (₹)</th>
+                <th>Lots</th>
+                <th>Status</th>
+                <th>P&amp;L (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="todayTradeHistoryBody">
+              <!-- Dynamically populated in script.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnDismissTradeHistory">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Risk & Position Size Calculator Modal -->
+  <div class="modal-overlay" id="riskCalcModal" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="icon">🧮</span>
+          <div>
+            <h3>Institutional Position Sizing &amp; Risk Calculator</h3>
+            <p>Kelly Criterion &amp; Fixed Fractional Risk Sizing for NIFTY Derivatives</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseRiskModal">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Trading Capital (₹):</label>
+            <input type="number" id="rcCapital" value="500000" class="text-input" style="width:100%;font-weight:700;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Max Risk % Per Trade:</label>
+            <input type="number" id="rcRiskPct" value="1.5" step="0.1" class="text-input" style="width:100%;font-weight:700;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Option Entry Price (₹):</label>
+            <input type="number" id="rcEntry" value="150" class="text-input" style="width:100%;font-weight:700;">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Stop Loss Price (₹):</label>
+            <input type="number" id="rcSl" value="110" class="text-input" style="width:100%;font-weight:700;">
+          </div>
+        </div>
+
+        <div style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--text-muted);">Max Allowable Risk Amount:</span>
+            <span style="font-weight:700;color:var(--red-neg);" id="rcMaxRiskAmt">₹7,500.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--text-muted);">Risk Per Share:</span>
+            <span style="font-weight:700;color:var(--text-main);" id="rcRiskPerShare">₹40.00</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;border-top:1px solid var(--border-color);padding-top:6px;">
+            <span style="color:var(--text-main);font-weight:600;">Recommended Position:</span>
+            <span style="font-weight:700;color:var(--accent-cyan);font-size:15px;" id="rcRecLots">3 Lots (150 Qty)</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--text-muted);">Total Capital Utilized:</span>
+            <span style="font-weight:700;color:var(--yellow-highlight);" id="rcCapitalUsed">₹22,500.00 (4.5% of Account)</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnDismissRiskModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Strike-wise OI Distribution Profile Modal -->
+  <div class="modal-overlay" id="oiProfileModal" style="display: none;">
+    <div class="modal-card wide-modal" style="max-width: 860px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="icon">📊</span>
+          <div>
+            <h3>Open Interest (OI) Distribution Profile</h3>
+            <p>Institutional Call vs Put Open Interest Concentration &amp; Support/Resistance Heatmap</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseOiModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;background:var(--bg-tertiary);padding:8px 14px;border-radius:6px;border:1px solid var(--border-color);">
+          <div style="display:flex;gap:16px;font-size:12px;">
+            <span><b style="color:#f43f5e;">■ Call OI (Resistance)</b></span>
+            <span><b style="color:#10b981;">■ Put OI (Support)</b></span>
+            <span><b style="color:#f59e0b;">★ ATM Strike</b></span>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);" id="oiProfileSummary">
+            Total CE: <b class="neg" id="modTotCe">--</b> | Total PE: <b class="pos" id="modTotPe">--</b> | PCR: <b class="highlight" id="modPcr">--</b>
+          </div>
+        </div>
+        <div id="oiBarsHistogram" style="display:flex;flex-direction:column;gap:5px;max-height:400px;overflow-y:auto;padding-right:4px;">
+          <!-- Dynamically populated strike bars -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnDismissOiModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gemini API Key Configuration Modal -->
+  <div class="modal-overlay" id="geminiKeyModal" style="display: none;">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="icon">🤖</span>
+          <div>
+            <h3>Google Gemini API Configuration</h3>
+            <p>Connect your personal Gemini API Key for deep institutional reasoning</p>
+          </div>
+        </div>
+        <button class="modal-close" id="btnCloseGeminiKeyModal">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:6px;">Google Gemini API Key:</label>
+          <input type="password" id="geminiApiKeyInput" placeholder="AIzaSy..." class="text-input" style="width:100%;padding:8px 10px;font-family:var(--font-mono);font-size:13px;">
+          <span style="font-size:10px;color:var(--text-dim);margin-top:4px;display:block;">
+            Stored securely in your local browser storage. Free key available at <a href="https://aistudio.google.com/" target="_blank" style="color:var(--accent-cyan);text-decoration:underline;">Google AI Studio</a>.
+          </span>
+        </div>
+        <div style="background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;padding:10px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+          💡 <b>Zero-Key Neural Mode:</b> If you don't have an API key, TradeNifty's built-in Quantitative Neural Engine automatically computes institutional insights with zero latency.
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;">
+        <button class="btn btn-sm btn-outline" id="btnClearGeminiKey" style="color:var(--red-neg);border-color:rgba(244,63,94,0.3);">Remove Key</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" id="btnDismissGeminiKey">Cancel</button>
+          <button class="btn btn-primary" id="btnSaveGeminiKey" style="background:linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);color:#fff;font-weight:700;">Save &amp; Connect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tab Bar -->
+  <nav class="nav-bar">
+    <button class="nav-tab active" data-tab="tab-optionchain">📊 Live Option Chain &amp; Analytics</button>
+    <button class="nav-tab" data-tab="tab-geminiai" style="color:#d946ef;font-weight:700;"><span class="pulse-dot" style="background:#d946ef;box-shadow:0 0 8px #d946ef;"></span> ✨ Gemini AI Sentiments &amp; Co-Pilot</button>
+    <button class="nav-tab" data-tab="tab-splitscreen">⚡ Split-Screen (Chain + Chart)</button>
+    <button class="nav-tab" data-tab="tab-domladder">🪜 Order Flow DOM Ladder</button>
+    <button class="nav-tab" data-tab="tab-ivsmile">🌊 Volatility Skew &amp; IV Smile</button>
+    <button class="nav-tab" data-tab="tab-tabbed-aoc">📑 Tabbed AOC (Multi-Expiry)</button>
+    <button class="nav-tab" data-tab="tab-multicharts">📈 Multi-Charts (8 Synced)</button>
+    <button class="nav-tab" data-tab="tab-screeners">🎯 AI &amp; Power Stock Screeners</button>
+    <button class="nav-tab" data-tab="tab-fiidii">🏛️ FII / DII Intraday Flow</button>
+    <button class="nav-tab" data-tab="tab-backtester">⏳ Backtester &amp; Replay</button>
+  </nav>
+
+  <!-- Main View Container -->
+  <main class="main-workspace">
+
+    <!-- 1. LIVE OPTION CHAIN TAB -->
+    <section class="tab-content active" id="tab-optionchain">
+      <!-- Analytical Summary Ribbon -->
+      <div class="analytics-ribbon" style="grid-template-columns: repeat(7, 1fr);">
+        <div class="metric-card">
+          <span class="m-title">Total Call OI (Resistance)</span>
+          <span class="m-val neg" id="totCallOi">14.82 M</span>
+          <span class="m-sub" id="totCallOiSub">Call Writing Resistance</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">Total Put OI (Support)</span>
+          <span class="m-val pos" id="totPutOi">17.49 M</span>
+          <span class="m-sub" id="totPutOiSub">Put Support Floor</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">PCR (Put/Call Ratio)</span>
+          <span class="m-val highlight" id="pcrDetail">1.180</span>
+          <span class="m-sub" id="pcrSentiment">Sentiment: Bullish Bias</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">Max Pain Strike</span>
+          <span class="m-val" id="maxPainStrike">22,800</span>
+          <span class="m-sub">Expiry Convergence</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">ATM Straddle & Range</span>
+          <span class="m-val" id="atmStraddle">₹336.30</span>
+          <span class="m-sub" id="expectedRangeSub">Range: ±336 pts</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">Institutional S/R Levels</span>
+          <div style="font-size:12px;font-family:var(--font-mono);font-weight:700;margin-top:2px;">
+            <span class="neg" id="ribbonMaxCeStrike">CE Res: --</span> | <span class="pos" id="ribbonMaxPeStrike">PE Sup: --</span>
+          </div>
+          <span class="m-sub">Key Hedging Walls</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">PCR Trend (Intraday)</span>
+          <div class="mini-sparkline" id="pcrSparkline"></div>
+        </div>
+      </div>
+
+      <!-- Option Chain Filter Controls -->
+      <div class="chain-controls-bar">
+        <div class="ctrl-group">
+          <label>Index:</label>
+          <select id="chainIndexSelect" class="select-input">
+            <option value="NIFTY" selected>NIFTY 50</option>
+            <option value="BANKNIFTY">BANK NIFTY</option>
+            <option value="FINNIFTY">FIN NIFTY</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Expiry Date:</label>
+          <select id="chainExpirySelect" class="select-input">
+            <option value="current" selected>27-OCT-2026 (Weekly)</option>
+            <option value="next">03-NOV-2026 (Weekly)</option>
+            <option value="far">29-DEC-2026 (Monthly)</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Strike Depth:</label>
+          <select id="strikeDepthSelect" class="select-input">
+            <option value="15">±15 Strikes (31 Rows)</option>
+            <option value="10" selected>±10 Strikes (21 Rows)</option>
+            <option value="25">±25 Strikes (51 Rows)</option>
+          </select>
+        </div>
+        <div class="ctrl-group">
+          <label>Metrics Toggle:</label>
+          <label class="chk-label"><input type="checkbox" id="chkGreeks" checked> Delta / IV</label>
+          <label class="chk-label"><input type="checkbox" id="chkTheta"> θ Theta</label>
+          <label class="chk-label"><input type="checkbox" id="chkStrikePcr" checked> Strike PCR</label>
+          <label class="chk-label"><input type="checkbox" id="chkOIChg" checked> ΔOI Bars</label>
+        </div>
+        <div class="ctrl-group-right">
+          <button class="btn btn-sm btn-outline" id="btnCenterAtm" title="Center scroll on ATM strike">🎯 Center ATM</button>
+          <button class="btn btn-sm btn-outline" id="btnToggleOiChart" title="View Strike-wise Call vs Put OI histogram">📊 OI Profile</button>
+          <input type="text" id="strikeSearch" placeholder="Search Strike (e.g. 22800)..." class="text-input" style="width:160px;">
+          <button class="btn btn-sm btn-outline" id="btnExportCSV">📥 CSV</button>
+        </div>
+      </div>
+
+      <!-- Option Chain Grid -->
+      <div class="table-wrapper" id="chainTableWrapper">
+        <table class="option-chain-table" id="mainOptionChainTable">
+          <thead>
+            <tr class="header-super">
+              <th colspan="8" class="call-super-header">CALLS (CE)</th>
+              <th class="strike-super-header" colspan="2">STRIKE &amp; PCR</th>
+              <th colspan="8" class="put-super-header">PUTS (PE)</th>
+            </tr>
+            <tr class="header-cols">
+              <!-- CALLS -->
+              <th style="width:36px;">Trade</th>
+              <th>OI (Lakhs)</th>
+              <th>Chg in OI</th>
+              <th>Volume</th>
+              <th>IV (%)</th>
+              <th>Delta</th>
+              <th>LTP (₹)</th>
+              <th>Chg (%)</th>
+              <!-- STRIKE & PCR -->
+              <th class="strike-col">STRIKE</th>
+              <th class="pcr-header-col">PCR</th>
+              <!-- PUTS -->
+              <th>Chg (%)</th>
+              <th>LTP (₹)</th>
+              <th>Delta</th>
+              <th>IV (%)</th>
+              <th>Volume</th>
+              <th>Chg in OI</th>
+              <th>OI (Lakhs)</th>
+              <th style="width:36px;">Trade</th>
+            </tr>
+          </thead>
+          <tbody id="optionChainBody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 2. SPLIT-SCREEN OPTION CHAIN + CHART -->
+    <section class="tab-content" id="tab-splitscreen">
+      <div class="splitscreen-container">
+        <!-- Left: Option Chain Pane -->
+        <div class="split-pane split-left">
+          <div class="pane-header">
+            <h3>⚡ Live Option Stream (Compact)</h3>
+            <span class="spot-compact">Spot: <b id="splitSpotVal">24,850.50</b></span>
+          </div>
+          <div class="table-wrapper compact-wrapper">
+            <table class="option-chain-table compact-table" id="splitChainTable">
+              <thead>
+                <tr>
+                  <th>CE OI</th>
+                  <th>CE LTP</th>
+                  <th class="strike-col">STRIKE</th>
+                  <th>PE LTP</th>
+                  <th>PE OI</th>
+                </tr>
+              </thead>
+              <tbody id="splitChainBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Resizer Divider -->
+        <div class="pane-resizer" id="paneResizer"></div>
+
+        <!-- Right: Interactive Trading Chart -->
+        <div class="split-pane split-right">
+          <div class="pane-header">
+            <div class="chart-header-left">
+              <h3>📈 NIFTY 50 (1-Min Interactive)</h3>
+              <div class="timeframe-pills">
+                <button class="pill-btn active" data-tf="1m">1m</button>
+                <button class="pill-btn" data-tf="3m">3m</button>
+                <button class="pill-btn" data-tf="5m">5m</button>
+                <button class="pill-btn" data-tf="15m">15m</button>
+              </div>
+            </div>
+            <div class="chart-header-right">
+              <span class="indicator-tag">VWAP: <b id="splitVwap">24,842.10</b></span>
+              <span class="indicator-tag">EMA(20): <b id="splitEma">24,835.40</b></span>
+            </div>
+          </div>
+          <div id="splitChartContainer" style="flex:1;width:100%;min-height:420px;position:relative;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2B. ORDER FLOW DOM LADDER (Market Depth Ladder & Shark Block Flow) -->
+    <section class="tab-content" id="tab-domladder">
+      <!-- Order Flow Quantitative Ribbon -->
+      <div class="analytics-ribbon" style="grid-template-columns: repeat(4, 1fr);background:linear-gradient(90deg, #0f172a 0%, #1e1b4b 100%);padding:8px 16px;">
+        <div class="metric-card">
+          <span class="m-title">Cumulative Volume Delta (CVD)</span>
+          <span class="m-val pos" id="ofCvdVal">+148,250 Lots</span>
+          <span class="m-sub">Aggressive Buyer Absorption (Bullish)</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">Institutional Imbalance Ratio</span>
+          <span class="m-val highlight" id="ofImbalanceVal">3.12x Ask Dominance</span>
+          <span class="m-sub">Pro Algos Lifting Offers</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">🦈 Primary Shark Liquidity Floor</span>
+          <span class="m-val pos" id="ofSharkFloor">22,800 PE (168k Wall)</span>
+          <span class="m-sub">Whale Put Writing Cushion</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">🦈 Primary Shark Resistance Ceiling</span>
+          <span class="m-val neg" id="ofSharkCeil">22,850 CE (148k Wall)</span>
+          <span class="m-sub">Whale Call Writing Barrier</span>
+        </div>
+      </div>
+
+      <div class="dom-ladder-container" style="display:grid;grid-template-columns: 1fr 280px 1fr 340px;gap:12px;height:calc(100vh - 250px);padding:10px 14px;overflow:hidden;">
+        <!-- Column 1: CALL DOM -->
+        <div class="dom-column" style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="padding:8px 12px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:700;color:var(--green-pos);font-size:12px;">🟢 CALL (CE) ORDER BOOK</span>
+            <span style="font-size:11px;color:var(--text-muted);" id="domCeContract">NIFTY 22800 CE</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:6px;" id="domCeLadder">
+            <!-- Dynamic DOM Ladder Rows -->
+          </div>
+        </div>
+
+        <!-- Column 2: Quick Scalper Execution Pad -->
+        <div class="dom-scalper-pad" style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:10px;">
+          <h4 style="font-size:12px;color:var(--accent-cyan);border-bottom:1px solid var(--border-color);padding-bottom:6px;margin:0;">⚡ Express Scalper Terminal</h4>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <span style="font-size:10px;color:var(--text-muted);">Contract:</span>
+            <select id="scalperContractSelect" class="select-input" style="width:100%;font-weight:700;padding:5px;font-size:11px;">
+              <option value="22800_CE">NIFTY 22800 CE (₹135.95)</option>
+              <option value="22800_PE">NIFTY 22800 PE (₹200.35)</option>
+              <option value="22750_CE">NIFTY 22750 CE (₹158.70)</option>
+              <option value="22750_PE">NIFTY 22750 PE (₹171.15)</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;">
+              <span style="font-size:10px;color:var(--text-muted);">Lots:</span>
+              <input type="number" id="scalperLots" value="2" min="1" max="100" class="text-input" style="width:100%;font-weight:700;padding:5px;font-size:12px;">
+            </div>
+            <div style="flex:1;">
+              <span style="font-size:10px;color:var(--text-muted);">Qty (50/lot):</span>
+              <input type="text" id="scalperQty" value="100" readonly class="text-input" style="width:100%;padding:5px;font-size:12px;opacity:0.8;">
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-primary" id="btnSimBuy" style="flex:1;background:var(--green-pos);color:#000;font-weight:700;padding:8px 0;font-size:11px;cursor:pointer;">BUY MARKET</button>
+            <button class="btn btn-primary" id="btnSimSell" style="flex:1;background:var(--red-neg);color:#fff;font-weight:700;padding:8px 0;font-size:11px;cursor:pointer;">SELL / EXIT</button>
+          </div>
+          <div style="background:var(--bg-tertiary);border-radius:4px;padding:8px;font-size:11px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+              <span style="color:var(--text-muted);">Margin Req:</span>
+              <span style="font-weight:700;color:var(--yellow-highlight);" id="scalperMargin">₹13,595.00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--text-muted);">Simulated Fill:</span>
+              <span style="font-weight:700;color:var(--green-pos);" id="scalperFillStatus">READY</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 3: PUT DOM -->
+        <div class="dom-column" style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="padding:8px 12px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:700;color:var(--red-neg);font-size:12px;">🔴 PUT (PE) ORDER BOOK</span>
+            <span style="font-size:11px;color:var(--text-muted);" id="domPeContract">NIFTY 22800 PE</span>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:6px;" id="domPeLadder">
+            <!-- Dynamic DOM Ladder Rows -->
+          </div>
+        </div>
+
+        <!-- Column 4: 🦈 Live Shark Institutional Block Trades (Time & Sales Tape) -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;">
+          <div style="padding:8px 12px;background:linear-gradient(90deg, #1e1b4b 0%, #1e293b 100%);border-bottom:1px solid rgba(0,240,255,0.3);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:700;color:#00f0ff;font-size:12px;display:flex;align-items:center;gap:5px;">
+              <span>🦈</span> LIVE SHARK BLOCK TAPE
+            </span>
+            <span id="sharkTapeStatusBadge" style="font-size:9px;background:rgba(0,240,255,0.15);color:#00f0ff;padding:2px 6px;border-radius:3px;font-weight:700;">HFT Aggressive Prints</span>
+          </div>
+          <div style="padding:4px 8px;background:var(--bg-tertiary);border-bottom:1px solid var(--border-color);display:grid;grid-template-columns:55px 95px 110px 75px 80px 1fr;gap:6px;font-size:10px;font-weight:700;color:var(--text-dim);">
+            <span>Time</span>
+            <span>Entity</span>
+            <span>Contract</span>
+            <span>Side</span>
+            <span>Lots</span>
+            <span>Value (₹)</span>
+          </div>
+          <div id="sharkBlockTradesTape" style="flex:1;overflow-y:auto;padding:4px 0;">
+            <!-- Dynamically populated live institutional block trades -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2C. VOLATILITY SKEW & IV SMILE TAB -->
+    <section class="tab-content" id="tab-ivsmile">
+      <div class="iv-smile-layout" style="display:grid;grid-template-columns:1fr 340px;gap:16px;height:calc(100vh - 195px);padding:12px;overflow:hidden;">
+        <!-- Left: Interactive IV Smile Canvas / SVG Curve -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;display:flex;flex-direction:column;overflow:hidden;padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div>
+              <h3 style="font-size:14px;color:var(--text-main);">🌊 Real-Time Volatility Skew &amp; IV Smile Curve</h3>
+              <p style="font-size:11px;color:var(--text-muted);">Option Implied Volatility (IV %) plotted across strikes (Call vs Put Skew)</p>
+            </div>
+            <div style="display:flex;gap:12px;font-size:12px;">
+              <span style="color:#00f0ff;">● Call IV</span>
+              <span style="color:#f43f5e;">● Put IV</span>
+              <span style="color:#f59e0b;">| ATM (22800)</span>
+            </div>
+          </div>
+          <div style="flex:1;position:relative;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:4px;overflow:hidden;" id="ivSmileChartBox">
+            <svg id="ivSmileSvg" width="100%" height="100%" style="overflow:visible;"></svg>
+          </div>
+        </div>
+
+        <!-- Right: Greeks Risk Metrics & Skew Indicators -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+          <h4 style="font-size:13px;color:var(--accent-cyan);border-bottom:1px solid var(--border-color);padding-bottom:8px;">📐 Institutional Greeks Surface</h4>
+          <div class="kpi-grid" style="grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="kpi-item" style="padding:8px;background:var(--bg-tertiary);border-radius:4px;"><span class="k" style="font-size:10px;">ATM Call Delta</span><span class="v pos" id="gCallDelta">0.51</span></div>
+            <div class="kpi-item" style="padding:8px;background:var(--bg-tertiary);border-radius:4px;"><span class="k" style="font-size:10px;">ATM Put Delta</span><span class="v neg" id="gPutDelta">-0.49</span></div>
+            <div class="kpi-item" style="padding:8px;background:var(--bg-tertiary);border-radius:4px;"><span class="k" style="font-size:10px;">ATM Gamma</span><span class="v" id="gGamma">0.0018</span></div>
+            <div class="kpi-item" style="padding:8px;background:var(--bg-tertiary);border-radius:4px;"><span class="k" style="font-size:10px;">Daily Theta</span><span class="v neg" id="gTheta">-₹14.20</span></div>
+            <div class="kpi-item" style="padding:8px;background:var(--bg-tertiary);border-radius:4px;"><span class="k" style="font-size:10px;">Vega (1% IV)</span><span class="v pos" id="gVega">₹18.60</span></div>
+            <div class="kpi-item" style="padding:8px;background:var(--bg-tertiary);border-radius:4px;"><span class="k" style="font-size:10px;">Put-Call Skew</span><span class="v highlight" id="gSkew">+3.2% Put Skew</span></div>
+          </div>
+          <div style="background:var(--bg-tertiary);border-radius:4px;padding:10px;font-size:11px;line-height:1.5;color:var(--text-muted);margin-top:4px;">
+            <b style="color:var(--text-main);">Desk Analysis:</b> OTM Put IV is trading at a +3.2% premium over Call IV. Institutional smart money is actively holding downside insurance hedges near the 22,700–22,650 support zone.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. TABBED AOC (Advanced Option Chains) -->
+    <section class="tab-content" id="tab-tabbed-aoc">
+      <div class="aoc-container">
+        <div class="aoc-tabs-bar">
+          <button class="aoc-tab-btn active" data-aoc="nifty-cur">NIFTY Weekly (27-OCT)</button>
+          <button class="aoc-tab-btn" data-aoc="nifty-next">NIFTY Monthly (29-DEC)</button>
+          <button class="aoc-tab-btn" data-aoc="bnifty-cur">BANKNIFTY Weekly</button>
+          <button class="aoc-tab-btn" data-aoc="finnifty-cur">FINNIFTY Weekly</button>
+          <button class="btn btn-sm btn-primary ml-auto" id="btnAddAocTab">+ Add Chain</button>
+        </div>
+        <div class="aoc-summary-banner">
+          <div class="aoc-stat">Current Instrument: <b id="aocActiveTitle">NIFTY 50 Weekly</b></div>
+          <div class="aoc-stat">OI Interpretation: <span class="badge-bullish" id="aocSentiment">Long Build-up / Strong Put Base at 24,800</span></div>
+          <div class="aoc-stat">ATM IV Rank: <b>24.5% (Low IV)</b></div>
+        </div>
+        <div class="table-wrapper">
+          <table class="option-chain-table" id="aocTable">
+            <thead>
+              <tr class="header-super">
+                <th colspan="6" class="call-super-header">CALL OPTION DATA</th>
+                <th class="strike-super-header">STRIKE</th>
+                <th colspan="6" class="put-super-header">PUT OPTION DATA</th>
+              </tr>
+              <tr class="header-cols">
+                <th>OI</th>
+                <th>ΔOI</th>
+                <th>Vol</th>
+                <th>IV</th>
+                <th>LTP</th>
+                <th>Chg</th>
+                <th class="strike-col">STRIKE</th>
+                <th>Chg</th>
+                <th>LTP</th>
+                <th>IV</th>
+                <th>Vol</th>
+                <th>ΔOI</th>
+                <th>OI</th>
+              </tr>
+            </thead>
+            <tbody id="aocTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. MULTI-CHARTS (UP TO 8 LIVE SYNCED CHARTS) -->
+    <section class="tab-content" id="tab-multicharts">
+      <div class="multichart-toolbar">
+        <div class="ctrl-group">
+          <label>Layout Grid:</label>
+          <div class="grid-buttons">
+            <button class="btn btn-sm grid-btn active" data-grid="2">⚡ 2 Charts (NIFTY 50 &amp; BANK NIFTY)</button>
+            <button class="btn btn-sm grid-btn" data-grid="4">4 Charts (Key Indices)</button>
+            <button class="btn btn-sm grid-btn" data-grid="8">8 Charts (All Assets)</button>
+          </div>
+        </div>
+        <div class="ctrl-group">
+          <label class="chk-label"><input type="checkbox" id="chkCrosshairSync" checked> Sync Crosshairs</label>
+          <label class="chk-label"><input type="checkbox" id="chkTimeSync" checked> Sync Time Range</label>
+        </div>
+        <div class="ctrl-group-right">
+          <button class="btn btn-sm btn-outline" id="btnResetMultiZoom">↺ Reset Zoom All</button>
+        </div>
+      </div>
+
+      <!-- Dynamic Grid of Charts -->
+      <div class="charts-grid grid-2" id="multiChartsGrid" style="flex:1;min-height:520px;height:calc(100vh - 200px);">
+        <!-- Chart slots -->
+      </div>
+    </section>
+
+    <!-- 5. AI STOCKS, POWER STOCKS & S/R SCREENERS -->
+    <section class="tab-content" id="tab-screeners">
+      <div class="screeners-layout">
+        <!-- Screener Nav -->
+        <div class="screener-tabs-bar">
+          <button class="s-tab-btn active" data-screener="ai-stocks">🤖 AI Algorithmic Stocks (High Momentum)</button>
+          <button class="s-tab-btn" data-screener="power-stocks">⚡ Power Breakout Stocks (Volume Burst)</button>
+          <button class="s-tab-btn" data-screener="sr-screener">📐 Support & Resistance / Camarilla Levels</button>
+        </div>
+
+        <div class="screener-card-panel" id="screenerPanelContainer">
+          <!-- Screener Table will render here -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. FII / DII INTRADAY ACTIVITY -->
+    <section class="tab-content" id="tab-fiidii">
+      <div class="fiidii-dashboard">
+        <div class="fii-cards-row">
+          <div class="metric-card fii-card">
+            <span class="m-title">FII Net Cash Today</span>
+            <span class="m-val pos" id="fiiCashNet">+₹1,482.50 Cr</span>
+            <span class="m-sub">Buy: ₹8,920 Cr | Sell: ₹7,438 Cr</span>
+          </div>
+          <div class="metric-card dii-card">
+            <span class="m-title">DII Net Cash Today</span>
+            <span class="m-val pos" id="diiCashNet">+₹924.30 Cr</span>
+            <span class="m-sub">Buy: ₹7,120 Cr | Sell: ₹6,195 Cr</span>
+          </div>
+          <div class="metric-card">
+            <span class="m-title">FII Index Futures Long/Short Ratio</span>
+            <span class="m-val highlight" id="fiiRatio">1.42 (Bullish)</span>
+            <span class="m-sub">Longs: 58.7% | Shorts: 41.3%</span>
+          </div>
+          <div class="metric-card">
+            <span class="m-title">FII Net Index Options Delta</span>
+            <span class="m-val pos" id="fiiOptDelta">+48,210 Contracts</span>
+            <span class="m-sub">Heavy Put Selling (Protection)</span>
+          </div>
+        </div>
+
+        <div class="fiidii-graphs-container">
+          <div class="fii-graph-box">
+            <h4>Cumulative Intraday Net Institutional Flow (Cr)</h4>
+            <div id="fiiFlowChart" class="fii-canvas-box"></div>
+          </div>
+          <div class="fii-graph-box">
+            <h4>Institutional Positioning Heatmap</h4>
+            <div class="fii-heatmap-table" id="fiiHeatmap">
+              <div class="heatmap-row head">
+                <span>Segment</span><span>FII Buy</span><span>FII Sell</span><span>FII Net</span><span>DII Net</span>
+              </div>
+              <div class="heatmap-row">
+                <span>Index Futures</span><span>₹3,410 Cr</span><span>₹2,820 Cr</span><span class="pos">+₹590 Cr</span><span class="neg">-₹120 Cr</span>
+              </div>
+              <div class="heatmap-row">
+                <span>Index Call Options</span><span>₹14,200 Cr</span><span>₹11,100 Cr</span><span class="pos">+₹3,100 Cr</span><span class="neg">-₹980 Cr</span>
+              </div>
+              <div class="heatmap-row">
+                <span>Index Put Options</span><span>₹9,800 Cr</span><span>₹13,200 Cr</span><span class="neg">-₹3,400 Cr</span><span class="pos">+₹1,400 Cr</span>
+              </div>
+              <div class="heatmap-row">
+                <span>Stock Futures</span><span>₹5,120 Cr</span><span>₹4,980 Cr</span><span class="pos">+₹140 Cr</span><span class="pos">+₹380 Cr</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. BACKTESTER & OI GRAPHS REPLAY -->
+    <section class="tab-content" id="tab-backtester">
+      <div class="backtester-container">
+        <!-- Controls Header -->
+        <div class="replay-controls-bar">
+          <div class="replay-bar-group">
+            <label>Replay Date:</label>
+            <input type="date" value="2026-10-15" class="select-input" id="replayDateInput">
+            <label>Speed:</label>
+            <select id="replaySpeedSelect" class="select-input">
+              <option value="1">1x Realtime</option>
+              <option value="5" selected>5x Speed</option>
+              <option value="20">20x Speed</option>
+              <option value="60">60x Hyper</option>
+            </select>
+          </div>
+          <div class="replay-bar-group">
+            <button class="btn btn-primary" id="btnPlayPauseReplay">▶ Play Replay</button>
+            <button class="btn btn-secondary" id="btnResetReplay">⏮ Reset 09:15</button>
+            <span class="replay-timestamp" id="replayClock">09:15:00 AM</span>
+          </div>
+          <div class="replay-bar-group slider-group">
+            <input type="range" id="replayTimelineSlider" min="0" max="375" value="0" class="time-range-slider">
+          </div>
+        </div>
+
+        <!-- Strategy Backtest & OI Shift View -->
+        <div class="backtest-grid">
+          <!-- Left: Strategy KPI Metrics -->
+          <div class="backtest-card">
+            <h4>⚡ 1-Min 20-Bar Breakout Strategy Performance (Replay Run)</h4>
+            <div class="kpi-grid">
+              <div class="kpi-item"><span class="k">Total Trades</span><span class="v" id="btTrades">42</span></div>
+              <div class="kpi-item"><span class="k">Win Rate</span><span class="v pos" id="btWinRate">66.7%</span></div>
+              <div class="kpi-item"><span class="k">Profit Factor</span><span class="v highlight" id="btProfitFactor">2.34</span></div>
+              <div class="kpi-item"><span class="k">Net P&L (1 Lot)</span><span class="v pos" id="btPnl">₹+48,650</span></div>
+              <div class="kpi-item"><span class="k">Max Drawdown</span><span class="v neg" id="btMaxDd">-4.8%</span></div>
+              <div class="kpi-item"><span class="k">Sharpe Ratio</span><span class="v" id="btSharpe">2.18</span></div>
+            </div>
+            <div class="replay-event-log" id="replayEventLog">
+              <div class="log-entry">09:15:00 Market Open - Establishing Strike Base 24800</div>
+            </div>
+          </div>
+
+          <!-- Right: OI Strike Histogram Shift Replay -->
+          <div class="backtest-card">
+            <div class="card-head-between">
+              <h4>📊 Strike-Wise OI Distribution (Replay Bar)</h4>
+              <span class="legend-box"><span class="dot-ce"></span> Call OI <span class="dot-pe"></span> Put OI</span>
+            </div>
+            <div id="replayOiHistogram" class="replay-histogram-container"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 10. GEMINI AI MARKET SENTIMENTS & CO-PILOT TAB -->
+    <section class="tab-content" id="tab-geminiai">
+      <!-- Gemini Top Control Ribbon -->
+      <div class="chain-controls-bar" style="background:linear-gradient(90deg, #181028 0%, #1c1533 100%);border-bottom:1px solid rgba(217,70,239,0.3);padding:10px 16px;">
+        <div class="ctrl-group">
+          <div id="geminiEngineBadge" style="display:flex;align-items:center;gap:6px;background:rgba(217,70,239,0.15);border:1px solid rgba(217,70,239,0.4);color:#f0abfc;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;">
+            <span class="pulse-dot" style="background:#d946ef;box-shadow:0 0 8px #d946ef;"></span>
+            <span id="geminiBadgeText">Gemini 1.5 Flash Connected</span>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);" id="geminiLastSync">Analysis Refreshed: Just Now</span>
+        </div>
+        <div class="ctrl-group-right">
+          <button class="btn btn-sm btn-outline" id="btnOpenGeminiKeyModal" style="border-color:rgba(217,70,239,0.5);color:#f0abfc;">
+            🔑 Gemini Key Config
+          </button>
+          <button class="btn btn-sm btn-primary" id="btnTriggerGeminiAnalysis" style="background:linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);color:#fff;font-weight:700;border:none;box-shadow:0 0 12px rgba(217,70,239,0.4);cursor:pointer;">
+            ⚡ Run Deep AI Analysis
+          </button>
+        </div>
+      </div>
+
+      <!-- Gemini AI Workspace Container (3-Column Grid) -->
+      <div style="flex:1;overflow:auto;padding:14px 16px;display:grid;grid-template-columns: 1.1fr 1fr 1fr;gap:14px;">
+
+        <!-- Column 1: Master Institutional Verdict & 4-Pillar "Kyu?" Breakdown -->
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <!-- Master Verdict Card -->
+          <div style="background:var(--bg-secondary);border:1px solid rgba(217,70,239,0.3);border-radius:8px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+              <div>
+                <span style="font-size:10px;font-weight:700;letter-spacing:1px;color:#d946ef;text-transform:uppercase;">Institutional AI Market Verdict</span>
+                <h2 id="aiVerdictTitle" style="font-size:17px;font-weight:800;color:#fff;margin:4px 0 2px 0;">BULLISH BIAS (78% CONVICTION)</h2>
+                <span id="aiVerdictSetup" style="font-size:12px;color:var(--accent-cyan);font-weight:700;">Recommended: BUY NIFTY 22800 CE (Bull Call Strategy)</span>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:10px;color:var(--text-muted);display:block;">Risk : Reward</span>
+                <span style="font-size:15px;font-weight:700;color:var(--green-pos);" id="aiRiskReward">1 : 2.4</span>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;background:var(--bg-tertiary);padding:8px 10px;border-radius:6px;border:1px solid var(--border-color);margin-top:8px;">
+              <div>
+                <span style="font-size:9px;color:var(--text-muted);display:block;">Entry Target</span>
+                <span style="font-size:12px;font-weight:700;color:#fff;" id="aiRecEntry">₹135.95</span>
+              </div>
+              <div>
+                <span style="font-size:9px;color:var(--text-muted);display:block;">Stop Loss (-28%)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--red-neg);" id="aiRecSl">₹97.80</span>
+              </div>
+              <div>
+                <span style="font-size:9px;color:var(--text-muted);display:block;">Target 1 (+35%)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--green-pos);" id="aiRecT1">₹183.50</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- The 4-Pillar "Kyu?" Detailed Breakdown Card -->
+          <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:14px;flex:1;display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-color);padding-bottom:6px;">
+              <h3 style="font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;">
+                <span>🧠</span> "KYU?" REASONING MATRIX (WHY THIS TRADE?)
+              </h3>
+              <span style="font-size:10px;background:rgba(0,240,255,0.15);color:var(--accent-cyan);padding:2px 6px;border-radius:4px;font-weight:700;">Multi-Model Verified</span>
+            </div>
+
+            <!-- Pillar 1 -->
+            <div style="background:var(--bg-tertiary);border-left:3px solid #10b981;border-radius:4px;padding:8px 10px;">
+              <span style="font-size:11px;font-weight:700;color:#10b981;display:block;margin-bottom:3px;">📊 1. Technical &amp; Price Action Setup (Kyu?):</span>
+              <p style="font-size:11px;color:var(--text-main);line-height:1.45;margin:0;" id="aiPillarTechnical">
+                Nifty Spot (₹22,811.35) is holding firmly above 20-EMA on 5m timeframe. RSI (14) at 51.5 reflects neutral consolidation with buyers defending intraday value lows.
+              </p>
+            </div>
+
+            <!-- Pillar 2 -->
+            <div style="background:var(--bg-tertiary);border-left:3px solid #06b6d4;border-radius:4px;padding:8px 10px;">
+              <span style="font-size:11px;font-weight:700;color:#06b6d4;display:block;margin-bottom:3px;">⛓️ 2. Option Chain &amp; PCR Analysis (Kyu?):</span>
+              <p style="font-size:11px;color:var(--text-main);line-height:1.45;margin:0;" id="aiPillarDerivatives">
+                Option Chain PCR is 0.82 with massive Put Open Interest concentration at 22,700/22,800 PE. Max Pain at 22,800 creates a strong magnetic floor preventing breakdown.
+              </p>
+            </div>
+
+            <!-- Pillar 3 -->
+            <div style="background:var(--bg-tertiary);border-left:3px solid #d946ef;border-radius:4px;padding:8px 10px;">
+              <span style="font-size:11px;font-weight:700;color:#d946ef;display:block;margin-bottom:3px;">📰 3. News &amp; Macro Catalysts (Kyu?):</span>
+              <p style="font-size:11px;color:var(--text-main);line-height:1.45;margin:0;" id="aiPillarNews">
+                RBI Governor reaffirmed resilient domestic macro fundamentals. Softening US Treasury yields (4.22%) and stable Brent Crude ($78/bbl) ease foreign selling pressure.
+              </p>
+            </div>
+
+            <!-- Pillar 4 -->
+            <div style="background:var(--bg-tertiary);border-left:3px solid #f43f5e;border-radius:4px;padding:8px 10px;">
+              <span style="font-size:11px;font-weight:700;color:#f43f5e;display:block;margin-bottom:3px;">⚠️ 4. Traps &amp; Invalidation Cutoff (Kyu?):</span>
+              <p style="font-size:11px;color:var(--text-main);line-height:1.45;margin:0;" id="aiPillarRisk">
+                Invalidation: 5m candle closing below ₹22,760 negates the trade immediately. India VIX (13.24) indicates low implied volatility; avoid holding deep OTM contracts through flat consolidation.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 2: Live Financial Market News & Sentiment Scanner -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-color);padding-bottom:6px;flex-wrap:wrap;gap:6px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <h3 style="font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;margin:0;">
+                <span>📰</span> LIVE MARKET NEWS &amp; SENTIMENT SCANNER
+              </h3>
+              <span id="newsAutoSyncTimer" style="background:rgba(0,240,255,0.12);color:var(--accent-cyan);border:1px solid rgba(0,240,255,0.3);padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                <span class="pulse-dot" style="width:6px;height:6px;background:var(--accent-cyan);"></span> Auto-Sync: 05:00
+              </span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;background:rgba(16,185,129,0.15);color:var(--green-pos);padding:2px 6px;border-radius:4px;font-weight:700;" id="newsSentimentBadge">74% Bullish Flow</span>
+              <button class="btn btn-sm btn-outline" id="btnManualNewsRefresh" style="padding:2px 7px;font-size:10px;border-color:rgba(255,255,255,0.2);cursor:pointer;" title="Force immediate fresh fetch from live market feeds">
+                🔄 Sync Now
+              </button>
+            </div>
+          </div>
+
+          <div id="geminiNewsFeedList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-right:4px;max-height:550px;">
+            <!-- Dynamically populated news cards -->
+          </div>
+        </div>
+
+        <!-- Column 3: Interactive "Ask Gemini" AI Terminal -->
+        <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-color);padding-bottom:6px;">
+            <h3 style="font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px;">
+              <span>💬</span> ASK GEMINI AI ANALYST
+            </h3>
+            <span style="font-size:10px;color:var(--text-muted);">Real-time Market Q&amp;A</span>
+          </div>
+
+          <!-- Suggested Quick Prompt Chips -->
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            <button class="ai-prompt-chip" data-prompt="Kyu buy kare Nifty Call? Setup samjhao">⚡ Kyu buy kare Call?</button>
+            <button class="ai-prompt-chip" data-prompt="Option Chain me sabse bada support & resistance kaha hai?">🛡️ S/R Levels?</button>
+            <button class="ai-prompt-chip" data-prompt="VIX 13.24 par option buyer ko kya savdhani rakhni chahiye?">📉 VIX Warning?</button>
+            <button class="ai-prompt-chip" data-prompt="Aaj news ka Nifty par sabse bada impact kya hoga?">📰 News Impact?</button>
+          </div>
+
+          <!-- Chat History Box -->
+          <div id="geminiChatLog" style="flex:1;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:6px;padding:10px;overflow-y:auto;max-height:380px;display:flex;flex-direction:column;gap:8px;font-size:11px;">
+            <div style="background:rgba(217,70,239,0.1);border-left:2px solid #d946ef;padding:6px 8px;border-radius:4px;color:#cbd5e1;line-height:1.4;">
+              🤖 <b>Gemini Co-Pilot:</b> Namaste! Mai live NIFTY 50 spot, Option Chain PCR, Max Pain, India VIX aur breaking market news monitor kar raha hu. Mujhse koi bhi question puchiye ya upar quick chip select kijiye!
+            </div>
+          </div>
+
+          <!-- Input Bar -->
+          <div style="display:flex;gap:6px;margin-top:auto;">
+            <input type="text" id="geminiChatInput" placeholder="Poochiye: e.g. Kyu 22800 CE hold kare?" class="text-input" style="flex:1;padding:6px 10px;font-size:12px;">
+            <button class="btn btn-primary" id="btnSendGeminiChat" style="background:#d946ef;color:#fff;font-weight:700;padding:6px 14px;cursor:pointer;">
+              Send
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Sound Audio Elements (Web Audio Synthesized in script.js) -->
+  <script src="script.js"></script>
+</body>
+</html>
