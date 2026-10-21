@@ -788,6 +788,14 @@ function renderMultiCharts(gridCount = 2) {
       chartBg = '#10121a'; chartText = '#a9b1d6'; chartBorder = '#2b2f48'; chartGrid = 'rgba(168,85,247,0.05)';
     } else if (activeTheme === 'theme-institutional-light') {
       chartBg = '#ebe3d5'; chartText = '#6c5e53'; chartBorder = '#cbbba6'; chartGrid = 'rgba(0,0,0,0.05)';
+    } else if (activeTheme === 'theme-fire-ice') {
+      chartBg = '#060b14'; chartText = '#8bb2d9'; chartBorder = '#1e3352'; chartGrid = 'rgba(0,210,255,0.05)';
+    } else if (activeTheme === 'theme-synthwave-neon') {
+      chartBg = '#060814'; chartText = '#94a3b8'; chartBorder = '#27316b'; chartGrid = 'rgba(0,240,255,0.05)';
+    } else if (activeTheme === 'theme-amethyst-violet') {
+      chartBg = '#0f0a1c'; chartText = '#c4b5fd'; chartBorder = '#432e78'; chartGrid = 'rgba(168,85,247,0.05)';
+    } else if (activeTheme === 'theme-emerald-gold') {
+      chartBg = '#03130d'; chartText = '#86efac'; chartBorder = '#b4861b'; chartGrid = 'rgba(0,255,136,0.05)';
     }
 
     assetsToRender.forEach((asset, idx) => {
@@ -1678,14 +1686,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- 8. Theme Switcher Engine (5 Distinct Themes) ---
+  // --- 8. Theme Switcher Engine (9 Distinct Themes) ---
   const themeSelector = document.getElementById('themeSelector');
   const themes = [
     'theme-bloomberg',
     'theme-matrix',
     'theme-tradingview',
     'theme-luxury-gold',
-    'theme-institutional-light'
+    'theme-institutional-light',
+    'theme-fire-ice',
+    'theme-synthwave-neon',
+    'theme-amethyst-violet',
+    'theme-emerald-gold'
   ];
 
   function updateChartThemeColors(themeName) {
@@ -1714,6 +1726,26 @@ document.addEventListener('DOMContentLoaded', () => {
       text = '#6c5e53';
       grid = 'rgba(0, 0, 0, 0.05)';
       border = '#cbbba6';
+    } else if (themeName === 'theme-fire-ice') {
+      bg = '#060b14';
+      text = '#8bb2d9';
+      grid = 'rgba(0, 210, 255, 0.05)';
+      border = '#1e3352';
+    } else if (themeName === 'theme-synthwave-neon') {
+      bg = '#060814';
+      text = '#94a3b8';
+      grid = 'rgba(0, 240, 255, 0.05)';
+      border = '#27316b';
+    } else if (themeName === 'theme-amethyst-violet') {
+      bg = '#0f0a1c';
+      text = '#c4b5fd';
+      grid = 'rgba(168, 85, 247, 0.05)';
+      border = '#432e78';
+    } else if (themeName === 'theme-emerald-gold') {
+      bg = '#03130d';
+      text = '#86efac';
+      grid = 'rgba(0, 255, 136, 0.05)';
+      border = '#b4861b';
     }
 
     const chartOpts = {
@@ -2158,6 +2190,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === '3') applyTheme('theme-tradingview');
     if (e.key === '4') applyTheme('theme-luxury-gold');
     if (e.key === '5') applyTheme('theme-institutional-light');
+    if (e.key === '6') applyTheme('theme-fire-ice');
+    if (e.key === '7') applyTheme('theme-synthwave-neon');
+    if (e.key === '8') applyTheme('theme-amethyst-violet');
+    if (e.key === '9') applyTheme('theme-emerald-gold');
     if (e.key.toLowerCase() === 'b') {
       const btn = document.getElementById('btnOpenWeekBacktest');
       if (btn) btn.click();

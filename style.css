@@ -145,6 +145,167 @@ body.theme-institutional-light .tile-title {
   color: var(--text-main);
 }
 
+/* UI THEME 6: Fire & Ice Dual Neon (from Image 1) */
+body.theme-fire-ice {
+  --bg-primary: #060b14;
+  --bg-secondary: #0b1320;
+  --bg-tertiary: #101c2e;
+  --bg-hover: #192a44;
+  --border-color: #1e3352;
+  --border-subtle: #122033;
+  --text-main: #f0f6fc;
+  --text-muted: #8bb2d9;
+  --text-dim: #4b6f96;
+  --accent-blue: #00d2ff;
+  --accent-cyan: #00f0ff;
+  --green-pos: #00e5ff;
+  --green-glow: rgba(0, 229, 255, 0.35);
+  --red-neg: #ff6600;
+  --red-glow: rgba(255, 102, 0, 0.35);
+  --yellow-highlight: #ffaa00;
+  --atm-bg: rgba(255, 170, 0, 0.15);
+  --itm-call-bg: rgba(0, 210, 255, 0.08);
+  --itm-put-bg: rgba(255, 102, 0, 0.08);
+}
+body.theme-fire-ice .metric-card:nth-child(odd) {
+  border: 1px solid rgba(0, 210, 255, 0.6);
+  box-shadow: 0 0 14px rgba(0, 210, 255, 0.25);
+}
+body.theme-fire-ice .metric-card:nth-child(even) {
+  border: 1px solid rgba(255, 102, 0, 0.6);
+  box-shadow: 0 0 14px rgba(255, 102, 0, 0.25);
+}
+body.theme-fire-ice .quick-trade-btn.buy-ce {
+  background: linear-gradient(135deg, #00d2ff 0%, #0066ff 100%);
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.5);
+  border: 1px solid #00f0ff;
+}
+body.theme-fire-ice .quick-trade-btn.buy-pe {
+  background: linear-gradient(135deg, #ff6600 0%, #ff0055 100%);
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.5);
+  border: 1px solid #ffaa00;
+}
+body.theme-fire-ice .trade-banner {
+  box-shadow: 0 0 20px rgba(255, 102, 0, 0.3);
+  border: 1.5px solid #ff6600;
+}
+
+/* UI THEME 7: Synthwave Cyber Neon (from Image 2) */
+body.theme-synthwave-neon {
+  --bg-primary: #060814;
+  --bg-secondary: #0c1024;
+  --bg-tertiary: #131938;
+  --bg-hover: #1c244f;
+  --border-color: #27316b;
+  --border-subtle: #161b3d;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent-blue: #00f0ff;
+  --accent-cyan: #00f0ff;
+  --green-pos: #00f0ff;
+  --green-glow: rgba(0, 240, 255, 0.35);
+  --red-neg: #ec4899;
+  --red-glow: rgba(236, 72, 153, 0.35);
+  --yellow-highlight: #facc15;
+  --atm-bg: rgba(250, 204, 21, 0.16);
+  --itm-call-bg: rgba(0, 240, 255, 0.08);
+  --itm-put-bg: rgba(236, 72, 153, 0.08);
+}
+body.theme-synthwave-neon .metric-card {
+  border-radius: 8px;
+  border: 1.5px solid rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+}
+body.theme-synthwave-neon .metric-card:nth-child(3n) {
+  border-color: rgba(250, 204, 21, 0.55);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.25);
+}
+body.theme-synthwave-neon .metric-card:nth-child(3n+1) {
+  border-color: rgba(236, 72, 153, 0.55);
+  box-shadow: 0 0 12px rgba(236, 72, 153, 0.25);
+}
+body.theme-synthwave-neon .atm-row {
+  border: 2px solid #facc15 !important;
+  box-shadow: 0 0 15px rgba(250, 204, 21, 0.35) inset, 0 0 15px rgba(250, 204, 21, 0.35);
+}
+
+/* UI THEME 8: Royal Amethyst Velvet (from Image 3) */
+body.theme-amethyst-violet {
+  --bg-primary: #0f0a1c;
+  --bg-secondary: #17102b;
+  --bg-tertiary: #21173d;
+  --bg-hover: #2e2054;
+  --border-color: #432e78;
+  --border-subtle: #241842;
+  --text-main: #f5f0ff;
+  --text-muted: #c4b5fd;
+  --text-dim: #7c68ad;
+  --accent-blue: #a855f7;
+  --accent-cyan: #c084fc;
+  --green-pos: #34d399;
+  --green-glow: rgba(52, 211, 153, 0.25);
+  --red-neg: #f43f5e;
+  --red-glow: rgba(244, 63, 94, 0.25);
+  --yellow-highlight: #f59e0b;
+  --atm-bg: rgba(192, 132, 252, 0.16);
+  --itm-call-bg: rgba(168, 85, 247, 0.08);
+  --itm-put-bg: rgba(244, 63, 94, 0.08);
+}
+body.theme-amethyst-violet .metric-card {
+  border: 1.5px solid rgba(192, 132, 252, 0.5);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.22);
+}
+body.theme-amethyst-violet .nav-tab.active {
+  color: #c084fc;
+  border-bottom-color: #c084fc;
+  text-shadow: 0 0 10px rgba(192, 132, 252, 0.6);
+}
+body.theme-amethyst-violet .trade-banner {
+  border: 1.5px solid rgba(192, 132, 252, 0.4);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.25);
+}
+
+/* UI THEME 9: Emerald Gold Royale (from Image 4) */
+body.theme-emerald-gold {
+  --bg-primary: #03130d;
+  --bg-secondary: #071f16;
+  --bg-tertiary: #0c2d20;
+  --bg-hover: #123d2c;
+  --border-color: #b4861b;
+  --border-subtle: #194a36;
+  --text-main: #f0fdf4;
+  --text-muted: #86efac;
+  --text-dim: #3b7e5e;
+  --accent-blue: #eab308;
+  --accent-cyan: #10b981;
+  --green-pos: #00ff88;
+  --green-glow: rgba(0, 255, 136, 0.35);
+  --red-neg: #ff3366;
+  --red-glow: rgba(255, 51, 102, 0.35);
+  --yellow-highlight: #fbbf24;
+  --atm-bg: rgba(0, 255, 136, 0.18);
+  --itm-call-bg: rgba(0, 255, 136, 0.08);
+  --itm-put-bg: rgba(255, 51, 102, 0.08);
+}
+body.theme-emerald-gold .metric-card {
+  border: 1.5px solid rgba(234, 179, 8, 0.65);
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.2);
+}
+body.theme-emerald-gold .nav-tab.active {
+  color: #fbbf24;
+  border-bottom-color: #fbbf24;
+  text-shadow: 0 0 10px rgba(234, 179, 8, 0.6);
+}
+body.theme-emerald-gold .trade-banner {
+  border: 1.5px solid rgba(234, 179, 8, 0.7);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.25);
+}
+body.theme-emerald-gold .atm-row {
+  border: 2px solid #00ff88 !important;
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.35) inset, 0 0 16px rgba(0, 255, 136, 0.35);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
