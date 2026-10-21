@@ -51,14 +51,34 @@
     startAnimationTrackingLoop();
   }
 
+  function isExtensionValid() {
+    try {
+      return typeof chrome !== 'undefined' && !!chrome.runtime && !!chrome.runtime.id;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function loadSettings() {
     return new Promise((resolve) => {
-      chrome.runtime.sendMessage({ action: 'GET_SETTINGS' }, (res) => {
-        if (res && res.success && res.settings) {
-          config = { ...config, ...res.settings };
-        }
+      if (!isExtensionValid()) {
         resolve();
-      });
+        return;
+      }
+      try {
+        chrome.runtime.sendMessage({ action: 'GET_SETTINGS' }, (res) => {
+          if (chrome.runtime?.lastError) {
+            resolve();
+            return;
+          }
+          if (res && res.success && res.settings) {
+            config = { ...config, ...res.settings };
+          }
+          resolve();
+        });
+      } catch (e) {
+        resolve();
+      }
     });
   }
 
@@ -328,27 +348,60 @@
     refreshTimer = setInterval(fetchData, config.refreshIntervalMs);
   }
 
-  function fetchData() {
-    chrome.runtime.sendMessage({
-      action: 'FETCH_MARKET_DATA',
-      serverUrl: config.serverUrl
-    }, (response) => {
-      if (response && response.success && response.data) {
-        marketState = response.data;
+  async function fetchData() {
+    const url = `${config.serverUrl.replace(/\/+$/, '')}/api/market-data`;
+
+    // 1. Direct fetch attempt for zero latency and extension-context-invalidation immunity
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        marketState = data;
         updateHUD();
         requestNativePriceCoordinates();
         renderAllChartOverlays();
         renderOptionDrawerRows();
         setConnectionStatus(true);
-      } else {
-        if (response && response.fallbackData) {
-          marketState = response.fallbackData;
-          updateHUD();
-          renderAllChartOverlays();
-        }
-        setConnectionStatus(false);
+        return;
       }
-    });
+    } catch (e) {}
+
+    // 2. Extension background worker fallback
+    if (!isExtensionValid()) {
+      if (refreshTimer) clearInterval(refreshTimer);
+      return;
+    }
+
+    try {
+      chrome.runtime.sendMessage({
+        action: 'FETCH_MARKET_DATA',
+        serverUrl: config.serverUrl
+      }, (response) => {
+        if (chrome.runtime?.lastError) {
+          setConnectionStatus(false);
+          return;
+        }
+        if (response && response.success && response.data) {
+          marketState = response.data;
+          updateHUD();
+          requestNativePriceCoordinates();
+          renderAllChartOverlays();
+          renderOptionDrawerRows();
+          setConnectionStatus(true);
+        } else {
+          if (response && response.fallbackData) {
+            marketState = response.fallbackData;
+            updateHUD();
+            renderAllChartOverlays();
+          }
+          setConnectionStatus(false);
+        }
+      });
+    } catch (err) {
+      if (!isExtensionValid() && refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+    }
   }
 
   function setConnectionStatus(isOnline) {
