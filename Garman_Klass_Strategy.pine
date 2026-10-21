@@ -1,0 +1,119 @@
+//@version=6
+strategy(title="Garman-Klass Volatility + Momentum Strategy [TradeNifty Pro]", shorttitle="GK Volatility Strategy", overlay=true, precision=2, initial_capital=40000, default_qty_type=strategy.fixed, default_qty_value=50, commission_type=strategy.commission.cash_per_order, commission_value=20, pyramiding=0)
+
+// ==========================================
+// ==== 1. Strategy Inputs & Risk Controls ====
+// ==========================================
+string g_vol = "Garman-Klass Volatility Settings"
+int volMaPeriod = input.int(20, "Volatility MA Period", minval=1, group=g_vol)
+float momentumThresh = input.float(0.15, "Bar Momentum Threshold (0.15 = 15%)", step=0.05, group=g_vol)
+
+string g_risk = "Risk Management (Spot Points)"
+float slSpotPts = input.float(35.0, "Stop Loss (Spot Points)", minval=1.0, step=5.0, group=g_risk)
+float tpSpotPts = input.float(180.0, "Take Profit Target (Spot Points)", minval=1.0, step=10.0, group=g_risk)
+
+string g_trail = "Trailing Stop Loss (Optional)"
+bool useTrailing = input.bool(true, "Enable Breakeven Trailing after 70 pts", group=g_trail)
+float beTriggerPts = input.float(70.0, "Breakeven Trigger (Spot Points)", minval=10.0, step=5.0, group=g_trail)
+
+// ==========================================
+// ==== 2. Technical Calculations & Math ====
+// ==========================================
+// Garman-Klass Volatility Formula:
+// GK = 0.5 * (ln(High/Low))^2 - (2*ln(2) - 1) * (ln(Close/Open))^2
+float logHL = math.log(high / math.max(low, 0.0001))
+float logCO = math.log(close / math.max(open, 0.0001))
+float gkVar = 0.5 * math.pow(logHL, 2) - (2.0 * math.log(2.0) - 1.0) * math.pow(logCO, 2)
+float gkVol = math.sqrt(math.max(0.0, gkVar))
+
+// Moving Average of Garman-Klass Volatility
+float maVol = ta.sma(gkVol, volMaPeriod)
+bool isVolAccel = gkVol > maVol
+
+// Candle Momentum Ratio: (Close - Open) / (High - Low)
+float barRange = high - low
+float candleMomentum = barRange > 0 ? (close - open) / barRange : 0.0
+
+// ==========================================
+// ==== 3. Entry & Exit Logic Matrix ====
+// ==========================================
+// Long (CE) Condition: Close > Prev High + Volatility Acceleration + Positive Momentum (> +0.15)
+bool buyCeCond = (close > high[1]) and isVolAccel and (candleMomentum > momentumThresh)
+
+// Short (PE) Condition: Close < Prev Low + Volatility Acceleration + Negative Momentum (< -0.15)
+bool buyPeCond = (close < low[1]) and isVolAccel and (candleMomentum < -momentumThresh)
+
+// Track Execution Levels
+var float entryPrice = na
+var float slPrice = na
+var float tpPrice = na
+var bool isTrailed = false
+
+// Reset on Flat Position
+if strategy.position_size == 0
+    entryPrice := na
+    slPrice := na
+    tpPrice := na
+    isTrailed := false
+
+// Long Execution (BUY CE)
+if buyCeCond and strategy.position_size <= 0
+    strategy.entry("Long (CE)", strategy.long)
+    entryPrice := close
+    slPrice := close - slSpotPts
+    tpPrice := close + tpSpotPts
+    isTrailed := false
+
+// Short Execution (BUY PE)
+if buyPeCond and strategy.position_size >= 0
+    strategy.entry("Short (PE)", strategy.short)
+    entryPrice := close
+    slPrice := close + slSpotPts
+    tpPrice := close - tpSpotPts
+    isTrailed := false
+
+// Trailing Breakeven Mechanism
+if useTrailing and strategy.position_size > 0 and not isTrailed
+    if (high - entryPrice) >= beTriggerPts
+        slPrice := entryPrice + 5.0 // trail stop to cost + 5 pts
+        isTrailed := true
+
+if useTrailing and strategy.position_size < 0 and not isTrailed
+    if (entryPrice - low) >= beTriggerPts
+        slPrice := entryPrice - 5.0 // trail stop to cost - 5 pts
+        isTrailed := true
+
+// Orders Management
+if strategy.position_size > 0
+    strategy.exit("Exit CE", "Long (CE)", stop=slPrice, limit=tpPrice, comment_loss="SL CE Hit", comment_profit="TP CE Hit")
+
+if strategy.position_size < 0
+    strategy.exit("Exit PE", "Short (PE)", stop=slPrice, limit=tpPrice, comment_loss="SL PE Hit", comment_profit="TP PE Hit")
+
+// ==========================================
+// ==== 4. Visual Plots & Dashboard Table ====
+// ==========================================
+plot(strategy.position_size != 0 ? slPrice : na, "Stop Loss Level", color=color.new(#f43f5e, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? tpPrice : na, "Take Profit Level", color=color.new(#10b981, 0), style=plot.style_linebr, linewidth=2)
+plot(strategy.position_size != 0 ? entryPrice : na, "Entry Price", color=color.new(#facc15, 20), style=plot.style_linebr, linewidth=1)
+
+plotshape(buyCeCond and strategy.position_size[1] <= 0 ? low : na, "BUY CE Signal", shape.labelup, location.belowbar, color=#10b981, size=size.small, text="BUY CE\nGK VOL", textcolor=color.white)
+plotshape(buyPeCond and strategy.position_size[1] >= 0 ? high : na, "BUY PE Signal", shape.labeldown, location.abovebar, color=#f43f5e, size=size.small, text="BUY PE\nGK VOL", textcolor=color.white)
+
+// HUD Stats Dashboard Panel on Chart
+var table hud = table.new(position.top_right, 2, 5, bgcolor=color.new(#0b0e14, 15), border_color=color.new(#facc15, 50), border_width=1)
+if barstate.islast
+    table.cell(hud, 0, 0, "MODEL", bgcolor=color.new(#1e293b, 20), text_color=color.white, text_size=size.small)
+    table.cell(hud, 1, 0, "GARMAN-KLASS", bgcolor=color.new(#1e293b, 20), text_color=#facc15, text_size=size.small)
+    
+    table.cell(hud, 0, 1, "GK VOL", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 1, str.tostring(gkVol, "#.#####"), bgcolor=color.new(#0b0e14, 20), text_color=isVolAccel ? #10b981 : #f43f5e, text_size=size.small)
+    
+    table.cell(hud, 0, 2, "VOL ACCEL", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 2, isVolAccel ? "ACCELERATING" : "NORMAL", bgcolor=color.new(#0b0e14, 20), text_color=isVolAccel ? #10b981 : #94a3b8, text_size=size.small)
+
+    table.cell(hud, 0, 3, "MOMENTUM", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 3, str.tostring(candleMomentum, "+#.##;-#.##"), bgcolor=color.new(#0b0e14, 20), text_color=candleMomentum > 0 ? #10b981 : #f43f5e, text_size=size.small)
+
+    table.cell(hud, 0, 4, "STATUS", bgcolor=color.new(#0b0e14, 20), text_color=#94a3b8, text_size=size.small)
+    table.cell(hud, 1, 4, strategy.position_size > 0 ? "LONG (CE)" : strategy.position_size < 0 ? "SHORT (PE)" : "FLAT (WAIT)", bgcolor=color.new(#0b0e14, 20), text_color=strategy.position_size > 0 ? #10b981 : strategy.position_size < 0 ? #f43f5e : #cbd5e1, text_size=size.small)
