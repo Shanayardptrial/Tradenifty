@@ -765,27 +765,43 @@
     const target2 = sig.target2 || (entry * 1.65);
     const stopLoss = sig.stopLoss || 144.25;
 
-    let svgHtml = '';
+    let svgHtml = `
+      <defs>
+        <filter id="tnGlowCe" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#ff5500" flood-opacity="0.9"/>
+        </filter>
+        <filter id="tnGlowPe" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#00e5ff" flood-opacity="0.9"/>
+        </filter>
+        <filter id="tnGlowGold" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#facc15" flood-opacity="0.9"/>
+        </filter>
+      </defs>
+    `;
     const lineX1 = bounds.left;
     const lineX2 = bounds.left + bounds.width;
 
-    const drawRay = (price, cls, labelTxt, labelCls) => {
+    const drawRay = (price, cls, labelTxt, labelCls, strokeHex) => {
       const y = priceToScreenY(price, bounds);
       if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
+        const textWidth = Math.max(90, labelTxt.length * 6.5 + 20);
         svgHtml += `
+          <!-- Futuristic Laser Line with Neon Flow -->
           <line x1="${lineX1}" y1="${y}" x2="${lineX2}" y2="${y}" class="tn-chart-line ${cls}" />
-          <g transform="translate(${lineX1 + 15}, ${y})">
-            <rect x="0" y="-10" width="${labelTxt.length * 6.5 + 16}" height="20" rx="4" fill="rgba(8,12,22,0.85)" stroke="currentColor" class="${labelCls}" stroke-width="1"></rect>
-            <text x="8" y="4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" fill="#fff">${labelTxt}</text>
+          <!-- Animated Radar Beacon Circle on Left -->
+          <circle cx="${lineX1 + 10}" cy="${y}" r="4" fill="${strokeHex || '#fff'}" class="tn-pulse-glow" />
+          <g transform="translate(${lineX1 + 22}, ${y})">
+            <rect x="0" y="-11" width="${textWidth}" height="22" rx="5" fill="rgba(8,12,22,0.92)" stroke="${strokeHex || 'currentColor'}" stroke-width="1.2" class="${labelCls}"></rect>
+            <text x="8" y="4.5" font-family="'JetBrains Mono', monospace" font-size="10.5" font-weight="800" fill="#fff">${labelTxt}</text>
           </g>
         `;
       }
     };
 
-    drawRay(entry, 'tn-line-atm', `⚡ OPTION ENTRY: ₹${entry.toFixed(2)}`, 'atm');
-    drawRay(target1, 'tn-line-shark-res', `🎯 TARGET 1 (+35%): ₹${target1.toFixed(2)}`, 'tn-shark-wall-ce');
-    if (target2) drawRay(target2, 'tn-line-shark-res', `🎯 TARGET 2 (+65%): ₹${target2.toFixed(2)}`, 'tn-shark-wall-ce');
-    drawRay(stopLoss, 'tn-line-shark-sup', `🛑 STOP LOSS (-28%): ₹${stopLoss.toFixed(2)}`, 'tn-shark-support-pe');
+    drawRay(entry, 'tn-line-atm', `⚡ OPTION ENTRY: ₹${entry.toFixed(2)}`, 'atm', '#facc15');
+    drawRay(target1, 'tn-line-tp', `🎯 TARGET 1 (+35%): ₹${target1.toFixed(2)}`, 'tn-shark-wall-ce', '#10b981');
+    if (target2) drawRay(target2, 'tn-line-tp', `🎯 TARGET 2 (+65%): ₹${target2.toFixed(2)}`, 'tn-shark-wall-ce', '#00f0ff');
+    drawRay(stopLoss, 'tn-line-sl', `🛑 STOP LOSS (-28%): ₹${stopLoss.toFixed(2)}`, 'tn-shark-support-pe', '#f43f5e');
 
     svgOverlay.innerHTML = svgHtml;
   }
@@ -866,28 +882,50 @@
     `;
   }
 
+  function resolveBadgeCollisions(badgeItems) {
+    if (!badgeItems || badgeItems.length === 0) return [];
+    // Sort badges by target Y ascending (from top to bottom of screen)
+    const sorted = [...badgeItems].sort((a, b) => a.y - b.y);
+    const minSpacing = 24; // minimum pixels between badge centers
+
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      if (curr.y - prev.y < minSpacing) {
+        curr.y = prev.y + minSpacing;
+      }
+    }
+    return sorted;
+  }
+
   function renderOptionAxisBadges(bounds, chartCtx) {
     if (!axisBadgesContainer || !config.showAxisBadges) return;
 
     const sig = marketState?.signal;
     if (!sig) return;
 
-    let badgesHtml = '';
-    const addStickyBadge = (price, label, cls) => {
+    const rawBadges = [];
+    const addBadgeItem = (price, label, cls) => {
       const y = priceToScreenY(price, bounds);
       if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
-        badgesHtml += `
-          <div class="tn-price-badge ${cls}" style="top:${y}px;">
-            <span>${label}:</span> <b>₹${price.toFixed(1)}</b>
-          </div>
-        `;
+        rawBadges.push({ price, label, cls, y });
       }
     };
 
-    if (sig.entryLtp) addStickyBadge(sig.entryLtp, '⚡ ENTRY', 'atm-strike');
-    if (sig.target1) addStickyBadge(sig.target1, '🎯 TP 1', 'signal-tp');
-    if (sig.target2) addStickyBadge(sig.target2, '🎯 TP 2', 'signal-tp');
-    if (sig.stopLoss) addStickyBadge(sig.stopLoss, '🛑 SL', 'signal-sl');
+    if (sig.target2) addBadgeItem(sig.target2, '🎯 TP 2', 'signal-tp');
+    if (sig.target1) addBadgeItem(sig.target1, '🎯 TP 1', 'signal-tp');
+    if (sig.entryLtp) addBadgeItem(sig.entryLtp, '⚡ ENTRY', 'atm-strike');
+    if (sig.stopLoss) addBadgeItem(sig.stopLoss, '🛑 SL', 'signal-sl');
+
+    const positioned = resolveBadgeCollisions(rawBadges);
+    let badgesHtml = '';
+    positioned.forEach(b => {
+      badgesHtml += `
+        <div class="tn-price-badge ${b.cls}" style="top:${b.y}px;">
+          <span>${b.label}:</span> <b>₹${b.price.toFixed(1)}</b>
+        </div>
+      `;
+    });
 
     axisBadgesContainer.innerHTML = badgesHtml;
   }
@@ -921,23 +959,27 @@
     const lineX1 = bounds.left;
     const lineX2 = bounds.left + bounds.width;
 
-    const drawRay = (price, cls, labelTxt, labelCls) => {
+    const drawRay = (price, cls, labelTxt, labelCls, strokeHex) => {
       const y = priceToScreenY(price, bounds);
       if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
+        const textWidth = Math.max(90, labelTxt.length * 6.5 + 20);
         svgHtml += `
+          <!-- Futuristic Laser Line with Neon Flow -->
           <line x1="${lineX1}" y1="${y}" x2="${lineX2}" y2="${y}" class="tn-chart-line ${cls}" />
-          <g transform="translate(${lineX1 + 15}, ${y})">
-            <rect x="0" y="-10" width="${labelTxt.length * 6.5 + 16}" height="20" rx="4" fill="rgba(8,12,22,0.85)" stroke="currentColor" class="${labelCls}" stroke-width="1"></rect>
-            <text x="8" y="4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" fill="#fff">${labelTxt}</text>
+          <!-- Animated Radar Beacon Circle on Left -->
+          <circle cx="${lineX1 + 10}" cy="${y}" r="4" fill="${strokeHex || '#fff'}" class="tn-pulse-glow" />
+          <g transform="translate(${lineX1 + 22}, ${y})">
+            <rect x="0" y="-11" width="${textWidth}" height="22" rx="5" fill="rgba(8,12,22,0.92)" stroke="${strokeHex || 'currentColor'}" stroke-width="1.2" class="${labelCls}"></rect>
+            <text x="8" y="4.5" font-family="'JetBrains Mono', monospace" font-size="10.5" font-weight="800" fill="#fff">${labelTxt}</text>
           </g>
         `;
       }
     };
 
-    if (maxCeStrike) drawRay(maxCeStrike, 'tn-line-shark-res', `🦈 SHARK RES: ${maxCeStrike} (${maxCeOi}L CE)`, 'tn-shark-wall-ce');
-    if (maxPeStrike) drawRay(maxPeStrike, 'tn-line-shark-sup', `🦈 SHARK SUP: ${maxPeStrike} (${maxPeOi}L PE)`, 'tn-shark-support-pe');
-    if (maxPain) drawRay(maxPain, 'tn-line-max-pain', `🎯 MAX PAIN: ${maxPain}`, 'max-pain');
-    if (atmStrike) drawRay(atmStrike, 'tn-line-atm', `⚡ ATM STRIKE: ${atmStrike}`, 'atm');
+    if (maxCeStrike) drawRay(maxCeStrike, 'tn-line-shark-res', `🦈 SHARK RES: ${maxCeStrike} (${maxCeOi}L CE)`, 'tn-shark-wall-ce', '#ff5500');
+    if (maxPeStrike) drawRay(maxPeStrike, 'tn-line-shark-sup', `🦈 SHARK SUP: ${maxPeStrike} (${maxPeOi}L PE)`, 'tn-shark-support-pe', '#00e5ff');
+    if (maxPain) drawRay(maxPain, 'tn-line-max-pain', `🎯 MAX PAIN: ${maxPain}`, 'max-pain', '#a855f7');
+    if (atmStrike) drawRay(atmStrike, 'tn-line-atm', `⚡ ATM STRIKE: ${atmStrike}`, 'atm', '#facc15');
 
     svgOverlay.innerHTML = svgHtml;
   }
@@ -1017,15 +1059,11 @@
   function renderSpotAxisBadges(bounds) {
     if (!axisBadgesContainer || !config.showAxisBadges) return;
 
-    let badgesHtml = '';
-    const addStickyBadge = (price, label, cls) => {
+    const rawBadges = [];
+    const addBadgeItem = (price, label, cls) => {
       const y = priceToScreenY(price, bounds);
       if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
-        badgesHtml += `
-          <div class="tn-price-badge ${cls}" style="top:${y}px;">
-            <span>${label}:</span> <b>${price}</b>
-          </div>
-        `;
+        rawBadges.push({ price, label, cls, y });
       }
     };
 
@@ -1041,12 +1079,22 @@
     const atm = marketState.derivatives?.atmStrike || 0;
     const sig = marketState.signal;
 
-    if (maxCe) addStickyBadge(maxCe, '🦈 RES', 'shark-res');
-    if (maxPe) addStickyBadge(maxPe, '🦈 SUP', 'shark-sup');
-    if (maxPain) addStickyBadge(maxPain, '🎯 PAIN', 'max-pain');
-    if (atm) addStickyBadge(atm, '⚡ ATM', 'atm-strike');
-    if (sig?.spotTarget) addStickyBadge(sig.spotTarget, '🎯 TP', 'signal-tp');
-    if (sig?.spotStopLoss) addStickyBadge(sig.spotStopLoss, '🛑 SL', 'signal-sl');
+    if (maxCe) addBadgeItem(maxCe, '🦈 RES', 'shark-res');
+    if (sig?.spotTarget) addBadgeItem(sig.spotTarget, '🎯 TP', 'signal-tp');
+    if (atm) addBadgeItem(atm, '⚡ ATM', 'atm-strike');
+    if (maxPain) addBadgeItem(maxPain, '🎯 PAIN', 'max-pain');
+    if (maxPe) addBadgeItem(maxPe, '🦈 SUP', 'shark-sup');
+    if (sig?.spotStopLoss) addBadgeItem(sig.spotStopLoss, '🛑 SL', 'signal-sl');
+
+    const positioned = resolveBadgeCollisions(rawBadges);
+    let badgesHtml = '';
+    positioned.forEach(b => {
+      badgesHtml += `
+        <div class="tn-price-badge ${b.cls}" style="top:${b.y}px;">
+          <span>${b.label}:</span> <b>${b.price}</b>
+        </div>
+      `;
+    });
 
     axisBadgesContainer.innerHTML = badgesHtml;
   }
