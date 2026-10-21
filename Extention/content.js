@@ -448,6 +448,41 @@
     });
   }
 
+  function getChartContext() {
+    // 1. Check TradingView symbol header / title
+    const headerEl = document.querySelector('[data-name="legend-series-item"]') ||
+                     document.querySelector('div[class*="legend"]') ||
+                     document.querySelector('div[class*="pane-legend"]') ||
+                     document.querySelector('#header-toolbar-symbol-search');
+    const headerText = (headerEl ? (headerEl.innerText || headerEl.textContent || '') : '') + ' ' + (document.title || '');
+
+    const isOptionSymbol = /\b(PUT|CALL|CE|PE)\b/i.test(headerText) ||
+                           /NIFTY\d{6}[CP]\d+/i.test(headerText);
+
+    // 2. Check if visible scale values are in option premium territory (< 3000)
+    let isOptionScale = false;
+    const priceAxis = document.querySelector('table.chart-markup-table tr td:last-child') ||
+                      document.querySelector('div[class*="price-axis"]');
+    if (priceAxis) {
+      const nums = (priceAxis.innerText || '').match(/\b\d{2,4}(?:\.\d{1,2})?\b/g);
+      if (nums && nums.length >= 2) {
+        const parsed = nums.map(n => parseFloat(n)).filter(n => n > 5 && n < 3000);
+        if (parsed.length >= 2) isOptionScale = true;
+      }
+    }
+
+    const isOption = isOptionSymbol || isOptionScale;
+    const isPut = /PUT|PE/i.test(headerText);
+    const isCall = /CALL|CE/i.test(headerText);
+
+    return {
+      isOption,
+      isPut,
+      isCall,
+      headerText
+    };
+  }
+
   function requestNativePriceCoordinates() {
     if (!marketState) return;
 
@@ -466,6 +501,10 @@
       if (sig.spotStopLoss) pricesToQuery.push(sig.spotStopLoss);
       if (sig.spotTarget) pricesToQuery.push(sig.spotTarget);
       if (sig.strike) pricesToQuery.push(sig.strike);
+      if (sig.entryLtp) pricesToQuery.push(sig.entryLtp);
+      if (sig.target1) pricesToQuery.push(sig.target1);
+      if (sig.target2) pricesToQuery.push(sig.target2);
+      if (sig.stopLoss) pricesToQuery.push(sig.stopLoss);
     }
 
     window.postMessage({
@@ -520,7 +559,7 @@
       const y1 = nativeEntries[0][1];
       const p2 = parseFloat(nativeEntries[1][0]);
       const y2 = nativeEntries[1][1];
-      if (Math.abs(p2 - p1) > 20 && Math.abs(y2 - y1) > 5) {
+      if (Math.abs(p2 - p1) > 2 && Math.abs(y2 - y1) > 5) {
         scaleCalibration.m = (y2 - y1) / (p2 - p1);
         scaleCalibration.c = y1 - (scaleCalibration.m * p1);
         return;
@@ -542,14 +581,14 @@
       const txt = (el.innerText || el.textContent || '').trim();
       if (!txt) return;
 
-      // Extract price (e.g. "22,739.20" or "22800.00")
+      // Extract price (handles both 22,800.00 Spot and 201.85 Option premiums)
       const cleaned = txt.replace(/,/g, '');
-      const match = cleaned.match(/\b(2[0-9]{4}(?:\.\d{1,2})?|[1-9][0-9]{4}(?:\.\d{1,2})?)\b/);
+      const match = cleaned.match(/\b([1-9][0-9]{0,4}(?:\.[0-9]{1,2})?)\b/);
       if (match) {
         const price = parseFloat(match[1]);
-        if (price >= 15000 && price <= 60000) {
+        if (price >= 1 && price <= 100000) {
           const rect = el.getBoundingClientRect();
-          if (rect.height >= 8 && rect.height <= 45 && rect.top >= 40 && rect.bottom <= window.innerHeight - 30) {
+          if (rect.height >= 8 && rect.height <= 50 && rect.top >= 40 && rect.bottom <= window.innerHeight - 30) {
             detectedPoints.push({
               price,
               y: rect.top + (rect.height / 2)
@@ -560,13 +599,17 @@
     });
 
     if (detectedPoints.length >= 2) {
-      // Sort by price
+      // Sort by price ascending
       detectedPoints.sort((a, b) => a.price - b.price);
       const lowest = detectedPoints[0];
       const highest = detectedPoints[detectedPoints.length - 1];
 
-      if (highest.price - lowest.price >= 50 && Math.abs(lowest.y - highest.y) >= 20) {
-        scaleCalibration.m = (highest.y - lowest.y) / (highest.price - lowest.price);
+      // In TradingView, higher price is near top (lower Y), lower price is near bottom (higher Y)
+      const deltaPrice = highest.price - lowest.price;
+      const deltaY = highest.y - lowest.y;
+
+      if (deltaPrice >= 2 && Math.abs(deltaY) >= 15) {
+        scaleCalibration.m = deltaY / deltaPrice;
         scaleCalibration.c = lowest.y - (scaleCalibration.m * lowest.price);
         scaleCalibration.lastUpdate = Date.now();
       }
@@ -580,12 +623,22 @@
     }
 
     // Fallback: estimate within chart bounds if scale not yet calibrated
-    if (marketState && marketState.spot && bounds) {
-      const halfRange = 350;
-      const minP = marketState.spot - halfRange;
-      const maxP = marketState.spot + halfRange;
-      const pct = (price - minP) / (maxP - minP);
-      return bounds.top + bounds.height - (pct * bounds.height);
+    if (bounds) {
+      const chartCtx = getChartContext();
+      if (chartCtx.isOption) {
+        const sig = marketState?.signal;
+        const entry = sig?.entryLtp || 200;
+        const minP = Math.max(0, entry - 120);
+        const maxP = entry + 180;
+        const pct = (price - minP) / (maxP - minP);
+        return bounds.top + bounds.height - (pct * bounds.height);
+      } else if (marketState && marketState.spot) {
+        const halfRange = 350;
+        const minP = marketState.spot - halfRange;
+        const maxP = marketState.spot + halfRange;
+        const pct = (price - minP) / (maxP - minP);
+        return bounds.top + bounds.height - (pct * bounds.height);
+      }
     }
 
     return null;
@@ -679,13 +732,168 @@
     const bounds = getTradingViewChartBounds();
     if (!bounds) return;
 
-    renderChartRayLines(bounds);
-    renderAutoPositionBox(bounds);
-    renderAxisStickyBadges(bounds);
+    const chartCtx = getChartContext();
+
+    if (chartCtx.isOption) {
+      renderOptionChartRayLines(bounds, chartCtx);
+      renderOptionPositionBox(bounds, chartCtx);
+      renderOptionAxisBadges(bounds, chartCtx);
+    } else {
+      renderSpotChartRayLines(bounds);
+      renderSpotPositionBox(bounds);
+      renderSpotAxisBadges(bounds);
+    }
   }
 
-  // 1. Draw In-Chart Ray Lines & In-Chart Labels
-  function renderChartRayLines(bounds) {
+  // === OPTION PREMIUM CHART RENDERERS ===
+  function renderOptionChartRayLines(bounds, chartCtx) {
+    if (!svgOverlay) return;
+
+    svgOverlay.setAttribute('width', window.innerWidth);
+    svgOverlay.setAttribute('height', window.innerHeight);
+
+    if (!config.showSharkLines) {
+      svgOverlay.innerHTML = '';
+      return;
+    }
+
+    const sig = marketState?.signal;
+    if (!sig) return;
+
+    const entry = sig.entryLtp || 200.35;
+    const target1 = sig.target1 || 270.47;
+    const target2 = sig.target2 || (entry * 1.65);
+    const stopLoss = sig.stopLoss || 144.25;
+
+    let svgHtml = '';
+    const lineX1 = bounds.left;
+    const lineX2 = bounds.left + bounds.width;
+
+    const drawRay = (price, cls, labelTxt, labelCls) => {
+      const y = priceToScreenY(price, bounds);
+      if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
+        svgHtml += `
+          <line x1="${lineX1}" y1="${y}" x2="${lineX2}" y2="${y}" class="tn-chart-line ${cls}" />
+          <g transform="translate(${lineX1 + 15}, ${y})">
+            <rect x="0" y="-10" width="${labelTxt.length * 6.5 + 16}" height="20" rx="4" fill="rgba(8,12,22,0.85)" stroke="currentColor" class="${labelCls}" stroke-width="1"></rect>
+            <text x="8" y="4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" fill="#fff">${labelTxt}</text>
+          </g>
+        `;
+      }
+    };
+
+    drawRay(entry, 'tn-line-atm', `⚡ OPTION ENTRY: ₹${entry.toFixed(2)}`, 'atm');
+    drawRay(target1, 'tn-line-shark-res', `🎯 TARGET 1 (+35%): ₹${target1.toFixed(2)}`, 'tn-shark-wall-ce');
+    if (target2) drawRay(target2, 'tn-line-shark-res', `🎯 TARGET 2 (+65%): ₹${target2.toFixed(2)}`, 'tn-shark-wall-ce');
+    drawRay(stopLoss, 'tn-line-shark-sup', `🛑 STOP LOSS (-28%): ₹${stopLoss.toFixed(2)}`, 'tn-shark-support-pe');
+
+    svgOverlay.innerHTML = svgHtml;
+  }
+
+  function renderOptionPositionBox(bounds, chartCtx) {
+    if (!positionLayer) return;
+
+    if (!config.showPositionBox || !marketState?.signal) {
+      positionLayer.innerHTML = '';
+      return;
+    }
+
+    const sig = marketState.signal;
+    const entryPrice = sig.entryLtp || 200.35;
+    const targetPrice = sig.target1 || 270.47;
+    const stopPrice = sig.stopLoss || 144.25;
+
+    const yEntry = priceToScreenY(entryPrice, bounds);
+    const yTarget = priceToScreenY(targetPrice, bounds);
+    const yStop = priceToScreenY(stopPrice, bounds);
+
+    if (yEntry === null || yTarget === null || yStop === null) {
+      positionLayer.innerHTML = '';
+      return;
+    }
+
+    const boxWidth = Math.min(340, Math.max(240, bounds.width * 0.35));
+    const boxRight = bounds.left + bounds.width - 20;
+    const boxLeft = boxRight - boxWidth;
+
+    // For option buyer: Target is UP (yTarget < yEntry), Stop is DOWN (yStop > yEntry)
+    const targetTop = Math.min(yEntry, yTarget);
+    const targetHeight = Math.abs(yTarget - yEntry);
+
+    const stopTop = Math.min(yEntry, yStop);
+    const stopHeight = Math.abs(yStop - yEntry);
+
+    // Live P&L: try reading current TradingView ticker price
+    const currentPriceEl = document.querySelector('div[class*="lastValue"]') ||
+                           document.querySelector('span[class*="inner-"]') ||
+                           document.querySelector('.dl-header-price');
+    let currentLtp = entryPrice;
+    if (currentPriceEl) {
+      const val = parseFloat((currentPriceEl.innerText || '').replace(/,/g, ''));
+      if (val > 10 && val < 2000) currentLtp = val;
+    }
+
+    const diff = currentLtp - entryPrice;
+    const liveProfitPerLot = diff * 50;
+    const isProfitable = liveProfitPerLot >= 0;
+    const pnlSign = isProfitable ? '+' : '';
+
+    positionLayer.innerHTML = `
+      <div class="tn-pos-box" style="left:${boxLeft}px;width:${boxWidth}px;top:0;bottom:0;">
+        <!-- Target Profit Zone (Green) -->
+        <div class="tn-pos-zone target-zone" style="top:${targetTop}px;height:${Math.max(18, targetHeight)}px;">
+          <span class="zone-label">🎯 TARGET 1: ₹${targetPrice.toFixed(2)} (+35%)</span>
+          <span class="zone-label" style="font-weight:900;">TP LOT PROFIT: +₹${((targetPrice - entryPrice) * 50).toFixed(0)}</span>
+        </div>
+
+        <!-- Stop Loss Zone (Red) -->
+        <div class="tn-pos-zone stop-zone" style="top:${stopTop}px;height:${Math.max(18, stopHeight)}px;">
+          <span class="zone-label">🛑 STOP LOSS: ₹${stopPrice.toFixed(2)} (-28%)</span>
+          <span class="zone-label" style="font-weight:900;">SL LOT RISK: -₹${((entryPrice - stopPrice) * 50).toFixed(0)}</span>
+        </div>
+
+        <!-- Center Entry Banner -->
+        <div class="tn-pos-entry-bar" style="top:${yEntry}px;">
+          <div class="tn-entry-tag-left">
+            <span class="tn-entry-pill pe">BUY ${sig.contract || 'OPTION'}</span>
+            <span>ENTRY: ₹${entryPrice.toFixed(2)}</span>
+          </div>
+          <div class="tn-live-pnl-pill ${isProfitable ? '' : 'neg'}">
+            ${pnlSign}₹${liveProfitPerLot.toFixed(0)} (${pnlSign}${diff.toFixed(2)} pts)
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderOptionAxisBadges(bounds, chartCtx) {
+    if (!axisBadgesContainer || !config.showAxisBadges) return;
+
+    const sig = marketState?.signal;
+    if (!sig) return;
+
+    let badgesHtml = '';
+    const addStickyBadge = (price, label, cls) => {
+      const y = priceToScreenY(price, bounds);
+      if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
+        badgesHtml += `
+          <div class="tn-price-badge ${cls}" style="top:${y}px;">
+            <span>${label}:</span> <b>₹${price.toFixed(1)}</b>
+          </div>
+        `;
+      }
+    };
+
+    if (sig.entryLtp) addStickyBadge(sig.entryLtp, '⚡ ENTRY', 'atm-strike');
+    if (sig.target1) addStickyBadge(sig.target1, '🎯 TP 1', 'signal-tp');
+    if (sig.target2) addStickyBadge(sig.target2, '🎯 TP 2', 'signal-tp');
+    if (sig.stopLoss) addStickyBadge(sig.stopLoss, '🛑 SL', 'signal-sl');
+
+    axisBadgesContainer.innerHTML = badgesHtml;
+  }
+
+  // === SPOT INDEX CHART RENDERERS ===
+  function renderSpotChartRayLines(bounds) {
     if (!svgOverlay) return;
 
     svgOverlay.setAttribute('width', window.innerWidth);
@@ -734,8 +942,7 @@
     svgOverlay.innerHTML = svgHtml;
   }
 
-  // 2. Auto-Drawn Long / Short Position Box on Chart
-  function renderAutoPositionBox(bounds) {
+  function renderSpotPositionBox(bounds) {
     if (!positionLayer) return;
 
     if (!config.showPositionBox || !marketState.signal) {
@@ -807,8 +1014,7 @@
     `;
   }
 
-  // 3. Render Right Price Axis Sticky Badges
-  function renderAxisStickyBadges(bounds) {
+  function renderSpotAxisBadges(bounds) {
     if (!axisBadgesContainer || !config.showAxisBadges) return;
 
     let badgesHtml = '';
