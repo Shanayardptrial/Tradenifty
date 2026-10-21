@@ -1152,20 +1152,39 @@
     };
   }
 
+  let sharedAudioCtx = null;
+  let userInteracted = false;
+
+  ['pointerdown', 'keydown', 'click'].forEach(evt => {
+    window.addEventListener(evt, () => {
+      userInteracted = true;
+      if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume().catch(() => {});
+      }
+    }, { once: false, passive: true });
+  });
+
   function playAlertBeep() {
+    if (!userInteracted) return; // Prevent "AudioContext not allowed to start" error before user gesture
     try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
+      if (!sharedAudioCtx) {
+        sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume().catch(() => {});
+        return;
+      }
+      const osc = sharedAudioCtx.createOscillator();
+      const gain = sharedAudioCtx.createGain();
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.frequency.setValueAtTime(880, sharedAudioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1320, sharedAudioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.12, sharedAudioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.2);
       osc.connect(gain);
-      gain.connect(audioCtx.destination);
+      gain.connect(sharedAudioCtx.destination);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.22);
+      osc.stop(sharedAudioCtx.currentTime + 0.22);
     } catch (e) {}
   }
 })();
