@@ -1,12 +1,13 @@
 // ==========================================================================
-// TradeNifty Pro - TradingView Institutional Overlay Engine
+// TradeNifty Pro - TradingView Institutional Overlay Engine v1.2
+// Dynamic Auto-Tracking, Zoom/Pan Synchronization & On-Chart Trade Plotter
 // ==========================================================================
 
 (() => {
-  if (window.__TRADENIFTY_TV_INJECTED__) return;
-  window.__TRADENIFTY_TV_INJECTED__ = true;
+  if (window.__TRADENIFTY_TV_INJECTED_V12__) return;
+  window.__TRADENIFTY_TV_INJECTED_V12__ = true;
 
-  console.log('%c[TradeNifty Pro]%c TradingView Institutional Engine Activated', 'background:#00f0ff;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px;', 'color:#00f0ff;font-weight:bold;');
+  console.log('%c[TradeNifty Pro]%c TV Auto-Tracking & Position Engine Online', 'background:#00f0ff;color:#000;font-weight:bold;padding:2px 6px;border-radius:3px;', 'color:#00f0ff;font-weight:bold;');
 
   let config = {
     serverUrl: 'http://127.0.0.1:5000',
@@ -14,6 +15,7 @@
     showOiBands: true,
     showSignalHud: true,
     showAxisBadges: true,
+    showPositionBox: true,
     showOptionDrawer: false,
     refreshIntervalMs: 2500,
     soundAlerts: true
@@ -23,9 +25,18 @@
   let hudElement = null;
   let svgOverlay = null;
   let axisBadgesContainer = null;
+  let positionLayer = null;
   let optionDrawerElement = null;
   let refreshTimer = null;
   let lastSignalContract = null;
+
+  // Real-Time Scale Calibration State (y = m * price + c)
+  let scaleCalibration = {
+    m: null,
+    c: null,
+    lastUpdate: 0,
+    nativeCoordinates: {}
+  };
 
   // Initialize
   init();
@@ -34,8 +45,10 @@
     await loadSettings();
     createOverlayDOM();
     setupDraggableHUD();
+    setupTradingViewInteractionListeners();
+    setupMainWorldMessageBridge();
     startDataSync();
-    setupWindowResizeListener();
+    startAnimationTrackingLoop();
   }
 
   function loadSettings() {
@@ -66,12 +79,18 @@
       document.body.appendChild(axisBadgesContainer);
     }
 
-    // 3. Floating HUD Box
+    // 3. Auto-Drawn Position Box Layer (TradingView Native Style)
+    if (!document.getElementById('tradenifty-position-layer')) {
+      positionLayer = document.createElement('div');
+      positionLayer.id = 'tradenifty-position-layer';
+      document.body.appendChild(positionLayer);
+    }
+
+    // 4. Floating HUD Box
     if (!document.getElementById('tradenifty-tv-hud')) {
       hudElement = document.createElement('div');
       hudElement.id = 'tradenifty-tv-hud';
       
-      // Load saved position
       const savedPos = localStorage.getItem('__tn_tv_hud_pos');
       if (savedPos) {
         try {
@@ -171,8 +190,8 @@
           <!-- Controls Strip -->
           <div class="tn-controls-strip">
             <button class="tn-btn-toggle active" id="tnTglLines">Ray Lines: ON</button>
+            <button class="tn-btn-toggle active" id="tnTglPosBox">Trade Box: ON</button>
             <button class="tn-btn-toggle active" id="tnTglBadges">Axis: ON</button>
-            <button class="tn-btn-toggle active" id="tnTglSignal">Signal: ON</button>
           </div>
         </div>
       `;
@@ -188,7 +207,17 @@
         config.showSharkLines = !config.showSharkLines;
         e.target.classList.toggle('active', config.showSharkLines);
         e.target.textContent = `Ray Lines: ${config.showSharkLines ? 'ON' : 'OFF'}`;
-        renderChartPlots();
+        renderAllChartOverlays();
+      });
+
+      document.getElementById('tnTglPosBox')?.addEventListener('click', (e) => {
+        config.showPositionBox = !config.showPositionBox;
+        e.target.classList.toggle('active', config.showPositionBox);
+        e.target.textContent = `Trade Box: ${config.showPositionBox ? 'ON' : 'OFF'}`;
+        if (positionLayer) {
+          positionLayer.style.display = config.showPositionBox ? 'block' : 'none';
+        }
+        renderAllChartOverlays();
       });
 
       document.getElementById('tnTglBadges')?.addEventListener('click', (e) => {
@@ -198,18 +227,11 @@
         if (axisBadgesContainer) {
           axisBadgesContainer.style.display = config.showAxisBadges ? 'block' : 'none';
         }
-      });
-
-      document.getElementById('tnTglSignal')?.addEventListener('click', (e) => {
-        config.showSignalHud = !config.showSignalHud;
-        e.target.classList.toggle('active', config.showSignalHud);
-        e.target.textContent = `Signal: ${config.showSignalHud ? 'ON' : 'OFF'}`;
-        const card = document.getElementById('tnSignalCard');
-        if (card) card.style.display = config.showSignalHud ? 'block' : 'none';
+        renderAllChartOverlays();
       });
     }
 
-    // 4. Compact Option Chain Drawer
+    // 5. Compact Option Chain Drawer
     if (!document.getElementById('tradenifty-option-drawer')) {
       optionDrawerElement = document.createElement('div');
       optionDrawerElement.id = 'tradenifty-option-drawer';
@@ -228,9 +250,7 @@
               <th style="color:#ff5500;">PE OI</th>
             </tr>
           </thead>
-          <tbody id="tnDrawerBody">
-            <!-- Populated via script -->
-          </tbody>
+          <tbody id="tnDrawerBody"></tbody>
         </table>
       `;
       document.body.appendChild(optionDrawerElement);
@@ -262,10 +282,8 @@
     if (!header || !hudElement) return;
 
     let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let initialX = 0;
-    let initialY = 0;
+    let startX = 0, startY = 0;
+    let initialX = 0, initialY = 0;
 
     header.addEventListener('mousedown', (e) => {
       if (e.target.tagName === 'BUTTON') return;
@@ -318,14 +336,15 @@
       if (response && response.success && response.data) {
         marketState = response.data;
         updateHUD();
-        renderChartPlots();
+        requestNativePriceCoordinates();
+        renderAllChartOverlays();
         renderOptionDrawerRows();
         setConnectionStatus(true);
       } else {
         if (response && response.fallbackData) {
           marketState = response.fallbackData;
           updateHUD();
-          renderChartPlots();
+          renderAllChartOverlays();
         }
         setConnectionStatus(false);
       }
@@ -343,6 +362,170 @@
       label.textContent = isOnline ? 'NSE Connected' : 'Reconnecting...';
       label.style.color = isOnline ? 'var(--tn-green)' : 'var(--tn-rose)';
     }
+  }
+
+  // --- Message Bridge to inject.js (MAIN World) ---
+  function setupMainWorldMessageBridge() {
+    window.addEventListener('message', (event) => {
+      if (event.source !== window || !event.data) return;
+
+      if (event.data.type === 'TN_TV_PRICES_RESULT') {
+        const results = event.data.results || [];
+        results.forEach(item => {
+          scaleCalibration.nativeCoordinates[item.price] = item.y;
+        });
+        scaleCalibration.lastUpdate = Date.now();
+        renderAllChartOverlays();
+      }
+
+      if (event.data.type === 'TN_TV_CHART_INTERACTION') {
+        calibratePriceScale();
+        renderAllChartOverlays();
+      }
+    });
+  }
+
+  function requestNativePriceCoordinates() {
+    if (!marketState) return;
+
+    const pricesToQuery = [];
+    if (marketState.spot) pricesToQuery.push(marketState.spot);
+    if (marketState.derivatives?.maxPain) pricesToQuery.push(marketState.derivatives.maxPain);
+    if (marketState.derivatives?.atmStrike) pricesToQuery.push(marketState.derivatives.atmStrike);
+
+    const chain = marketState.chain || [];
+    chain.forEach(r => {
+      if (r.strike) pricesToQuery.push(r.strike);
+    });
+
+    const sig = marketState.signal;
+    if (sig) {
+      if (sig.spotStopLoss) pricesToQuery.push(sig.spotStopLoss);
+      if (sig.spotTarget) pricesToQuery.push(sig.spotTarget);
+      if (sig.strike) pricesToQuery.push(sig.strike);
+    }
+
+    window.postMessage({
+      type: 'TN_CALC_TV_PRICES',
+      prices: [...new Set(pricesToQuery)]
+    }, '*');
+  }
+
+  // --- Dynamic TradingView Scale Resolver (Continuous Calibrator) ---
+  function setupTradingViewInteractionListeners() {
+    // Listen to wheel (zoom) and pointer (drag/pan) across document
+    window.addEventListener('wheel', () => {
+      calibratePriceScale();
+      renderAllChartOverlays();
+    }, { passive: true });
+
+    ['pointerdown', 'pointermove', 'pointerup', 'touchmove'].forEach(evt => {
+      window.addEventListener(evt, () => {
+        calibratePriceScale();
+        renderAllChartOverlays();
+      }, { passive: true });
+    });
+
+    window.addEventListener('resize', () => {
+      calibratePriceScale();
+      renderAllChartOverlays();
+    });
+  }
+
+  function startAnimationTrackingLoop() {
+    let lastM = null;
+    let lastC = null;
+
+    function loop() {
+      calibratePriceScale();
+      if (scaleCalibration.m !== lastM || scaleCalibration.c !== lastC) {
+        lastM = scaleCalibration.m;
+        lastC = scaleCalibration.c;
+        renderAllChartOverlays();
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  }
+
+  // Calibrate y = m * price + c from visible TradingView DOM scale elements
+  function calibratePriceScale() {
+    // 1. Check if we have native coordinates from inject.js
+    const nativeEntries = Object.entries(scaleCalibration.nativeCoordinates);
+    if (nativeEntries.length >= 2) {
+      const p1 = parseFloat(nativeEntries[0][0]);
+      const y1 = nativeEntries[0][1];
+      const p2 = parseFloat(nativeEntries[1][0]);
+      const y2 = nativeEntries[1][1];
+      if (Math.abs(p2 - p1) > 20 && Math.abs(y2 - y1) > 5) {
+        scaleCalibration.m = (y2 - y1) / (p2 - p1);
+        scaleCalibration.c = y1 - (scaleCalibration.m * p1);
+        return;
+      }
+    }
+
+    // 2. High-precision DOM scanning of TradingView's right price scale
+    const priceAxisContainer = document.querySelector('table.chart-markup-table tr td:last-child') ||
+                               document.querySelector('div[class*="price-axis"]') ||
+                               document.querySelector('div[class*="priceAxis"]');
+
+    if (!priceAxisContainer) return;
+
+    const detectedPoints = [];
+
+    // Scan all text elements in the price axis
+    const elements = priceAxisContainer.querySelectorAll('div, span');
+    elements.forEach(el => {
+      const txt = (el.innerText || el.textContent || '').trim();
+      if (!txt) return;
+
+      // Extract price (e.g. "22,739.20" or "22800.00")
+      const cleaned = txt.replace(/,/g, '');
+      const match = cleaned.match(/\b(2[0-9]{4}(?:\.\d{1,2})?|[1-9][0-9]{4}(?:\.\d{1,2})?)\b/);
+      if (match) {
+        const price = parseFloat(match[1]);
+        if (price >= 15000 && price <= 60000) {
+          const rect = el.getBoundingClientRect();
+          if (rect.height >= 8 && rect.height <= 45 && rect.top >= 40 && rect.bottom <= window.innerHeight - 30) {
+            detectedPoints.push({
+              price,
+              y: rect.top + (rect.height / 2)
+            });
+          }
+        }
+      }
+    });
+
+    if (detectedPoints.length >= 2) {
+      // Sort by price
+      detectedPoints.sort((a, b) => a.price - b.price);
+      const lowest = detectedPoints[0];
+      const highest = detectedPoints[detectedPoints.length - 1];
+
+      if (highest.price - lowest.price >= 50 && Math.abs(lowest.y - highest.y) >= 20) {
+        scaleCalibration.m = (highest.y - lowest.y) / (highest.price - lowest.price);
+        scaleCalibration.c = lowest.y - (scaleCalibration.m * lowest.price);
+        scaleCalibration.lastUpdate = Date.now();
+      }
+    }
+  }
+
+  // Calculate pixel Y coordinate for any given price with auto-tracking
+  function priceToScreenY(price, bounds) {
+    if (scaleCalibration.m !== null && scaleCalibration.c !== null) {
+      return (scaleCalibration.m * price) + scaleCalibration.c;
+    }
+
+    // Fallback: estimate within chart bounds if scale not yet calibrated
+    if (marketState && marketState.spot && bounds) {
+      const halfRange = 350;
+      const minP = marketState.spot - halfRange;
+      const maxP = marketState.spot + halfRange;
+      const pct = (price - minP) / (maxP - minP);
+      return bounds.top + bounds.height - (pct * bounds.height);
+    }
+
+    return null;
   }
 
   // --- Update HUD UI ---
@@ -366,20 +549,12 @@
 
     // 2. Institutional Shark Walls Calculation
     const chain = marketState.chain || [];
-    let maxCeStrike = 0;
-    let maxCeOi = 0;
-    let maxPeStrike = 0;
-    let maxPeOi = 0;
+    let maxCeStrike = 0, maxCeOi = 0;
+    let maxPeStrike = 0, maxPeOi = 0;
 
     chain.forEach(r => {
-      if (r.ce?.oi > maxCeOi) {
-        maxCeOi = r.ce.oi;
-        maxCeStrike = r.strike;
-      }
-      if (r.pe?.oi > maxPeOi) {
-        maxPeOi = r.pe.oi;
-        maxPeStrike = r.strike;
-      }
+      if (r.ce?.oi > maxCeOi) { maxCeOi = r.ce.oi; maxCeStrike = r.strike; }
+      if (r.pe?.oi > maxPeOi) { maxPeOi = r.pe.oi; maxPeStrike = r.strike; }
     });
 
     const ceDist = maxCeStrike ? maxCeStrike - spot : 0;
@@ -427,7 +602,6 @@
       if (targetEl) targetEl.textContent = `₹${(sig.target1 || 0).toFixed(2)}`;
       if (stopEl) stopEl.textContent = `₹${(sig.stopLoss || 0).toFixed(2)}`;
 
-      // Sound notification on new signal
       if (config.soundAlerts && sig.contract && sig.contract !== lastSignalContract) {
         lastSignalContract = sig.contract;
         playAlertBeep();
@@ -435,29 +609,30 @@
     }
   }
 
-  // --- Render Chart Canvas Overlays & Price Axis Badges ---
-  function renderChartPlots() {
-    if (!svgOverlay || !marketState) return;
+  // --- Render Chart Overlays: Ray Lines, Position Box, Axis Badges ---
+  function renderAllChartOverlays() {
+    if (!marketState) return;
 
-    // Detect TradingView main chart bounds & price range
     const bounds = getTradingViewChartBounds();
-    if (!bounds || !bounds.visibleMinPrice || !bounds.visibleMaxPrice) {
-      // Fallback: render anchored right badges based on percentage if exact axis coordinate calculation is adapting
-      renderAxisBadgesRelative(bounds);
-      return;
-    }
+    if (!bounds) return;
+
+    renderChartRayLines(bounds);
+    renderAutoPositionBox(bounds);
+    renderAxisStickyBadges(bounds);
+  }
+
+  // 1. Draw In-Chart Ray Lines & In-Chart Labels
+  function renderChartRayLines(bounds) {
+    if (!svgOverlay) return;
 
     svgOverlay.setAttribute('width', window.innerWidth);
     svgOverlay.setAttribute('height', window.innerHeight);
 
-    // Compute Y coordinate for price
-    const getY = (price) => {
-      const { top, height, visibleMinPrice, visibleMaxPrice } = bounds;
-      const pct = (price - visibleMinPrice) / (visibleMaxPrice - visibleMinPrice);
-      return top + height - (pct * height);
-    };
+    if (!config.showSharkLines) {
+      svgOverlay.innerHTML = '';
+      return;
+    }
 
-    let svgHtml = '';
     const spot = marketState.spot || 0;
     const chain = marketState.chain || [];
     let maxCeStrike = 0, maxCeOi = 0;
@@ -470,62 +645,113 @@
 
     const maxPain = marketState.derivatives?.maxPain || 0;
     const atmStrike = marketState.derivatives?.atmStrike || 0;
-    const sig = marketState.signal;
 
-    if (config.showSharkLines) {
-      // 1. Shark Call Resistance Line
-      if (maxCeStrike) {
-        const y = getY(maxCeStrike);
-        if (y >= bounds.top && y <= bounds.top + bounds.height) {
-          svgHtml += `<line x1="${bounds.left}" y1="${y}" x2="${bounds.left + bounds.width}" y2="${y}" class="tn-chart-line tn-line-shark-res" />`;
-        }
-      }
+    let svgHtml = '';
+    const lineX1 = bounds.left;
+    const lineX2 = bounds.left + bounds.width;
 
-      // 2. Shark Put Support Line
-      if (maxPeStrike) {
-        const y = getY(maxPeStrike);
-        if (y >= bounds.top && y <= bounds.top + bounds.height) {
-          svgHtml += `<line x1="${bounds.left}" y1="${y}" x2="${bounds.left + bounds.width}" y2="${y}" class="tn-chart-line tn-line-shark-sup" />`;
-        }
+    const drawRay = (price, cls, labelTxt, labelCls) => {
+      const y = priceToScreenY(price, bounds);
+      if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
+        svgHtml += `
+          <line x1="${lineX1}" y1="${y}" x2="${lineX2}" y2="${y}" class="tn-chart-line ${cls}" />
+          <g transform="translate(${lineX1 + 15}, ${y})">
+            <rect x="0" y="-10" width="${labelTxt.length * 6.5 + 16}" height="20" rx="4" fill="rgba(8,12,22,0.85)" stroke="currentColor" class="${labelCls}" stroke-width="1"></rect>
+            <text x="8" y="4" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="bold" fill="#fff">${labelTxt}</text>
+          </g>
+        `;
       }
+    };
 
-      // 3. Max Pain Line
-      if (maxPain) {
-        const y = getY(maxPain);
-        if (y >= bounds.top && y <= bounds.top + bounds.height) {
-          svgHtml += `<line x1="${bounds.left}" y1="${y}" x2="${bounds.left + bounds.width}" y2="${y}" class="tn-chart-line tn-line-max-pain" />`;
-        }
-      }
-
-      // 4. Signal TP and SL Lines
-      if (sig && sig.spotTarget) {
-        const y = getY(sig.spotTarget);
-        if (y >= bounds.top && y <= bounds.top + bounds.height) {
-          svgHtml += `<line x1="${bounds.left}" y1="${y}" x2="${bounds.left + bounds.width}" y2="${y}" class="tn-chart-line tn-line-tp" />`;
-        }
-      }
-      if (sig && sig.spotStopLoss) {
-        const y = getY(sig.spotStopLoss);
-        if (y >= bounds.top && y <= bounds.top + bounds.height) {
-          svgHtml += `<line x1="${bounds.left}" y1="${y}" x2="${bounds.left + bounds.width}" y2="${y}" class="tn-chart-line tn-line-sl" />`;
-        }
-      }
-    }
+    if (maxCeStrike) drawRay(maxCeStrike, 'tn-line-shark-res', `🦈 SHARK RES: ${maxCeStrike} (${maxCeOi}L CE)`, 'tn-shark-wall-ce');
+    if (maxPeStrike) drawRay(maxPeStrike, 'tn-line-shark-sup', `🦈 SHARK SUP: ${maxPeStrike} (${maxPeOi}L PE)`, 'tn-shark-support-pe');
+    if (maxPain) drawRay(maxPain, 'tn-line-max-pain', `🎯 MAX PAIN: ${maxPain}`, 'max-pain');
+    if (atmStrike) drawRay(atmStrike, 'tn-line-atm', `⚡ ATM STRIKE: ${atmStrike}`, 'atm');
 
     svgOverlay.innerHTML = svgHtml;
-    renderAxisBadgesPrecise(bounds, getY, maxCeStrike, maxPeStrike, maxPain, atmStrike, sig);
   }
 
-  // --- TradingView Price Axis Badges Rendering ---
-  function renderAxisBadgesPrecise(bounds, getY, maxCe, maxPe, maxPain, atm, sig) {
+  // 2. Auto-Drawn Long / Short Position Box on Chart
+  function renderAutoPositionBox(bounds) {
+    if (!positionLayer) return;
+
+    if (!config.showPositionBox || !marketState.signal) {
+      positionLayer.innerHTML = '';
+      return;
+    }
+
+    const sig = marketState.signal;
+    const isPe = sig.actionType === 'BUY_PE' || (sig.action && sig.action.includes('PUT'));
+
+    // Compute entry, target, and stop loss price levels
+    const spot = marketState.spot || 22800;
+    const entryPrice = sig.strike || spot;
+    const targetPrice = sig.spotTarget || (isPe ? entryPrice - 200 : entryPrice + 200);
+    const stopPrice = sig.spotStopLoss || (isPe ? entryPrice + 250 : entryPrice - 250);
+
+    const yEntry = priceToScreenY(entryPrice, bounds);
+    const yTarget = priceToScreenY(targetPrice, bounds);
+    const yStop = priceToScreenY(stopPrice, bounds);
+
+    if (yEntry === null || yTarget === null || yStop === null) {
+      positionLayer.innerHTML = '';
+      return;
+    }
+
+    // Anchor position box to recent candles (right section of chart canvas)
+    const boxWidth = Math.min(320, Math.max(220, bounds.width * 0.32));
+    const boxRight = bounds.left + bounds.width - 20;
+    const boxLeft = boxRight - boxWidth;
+
+    // Target Zone and Stop Loss Zone dimensions
+    const targetTop = Math.min(yEntry, yTarget);
+    const targetHeight = Math.abs(yTarget - yEntry);
+
+    const stopTop = Math.min(yEntry, yStop);
+    const stopHeight = Math.abs(yStop - yEntry);
+
+    // Live P&L calculation
+    const currentDiff = isPe ? (entryPrice - spot) : (spot - entryPrice);
+    const liveProfitPerLot = currentDiff * 50;
+    const isProfitable = liveProfitPerLot >= 0;
+    const pnlSign = isProfitable ? '+' : '';
+
+    positionLayer.innerHTML = `
+      <div class="tn-pos-box" style="left:${boxLeft}px;width:${boxWidth}px;top:0;bottom:0;">
+        <!-- Target Profit Zone (Green) -->
+        <div class="tn-pos-zone target-zone" style="top:${targetTop}px;height:${Math.max(16, targetHeight)}px;">
+          <span class="zone-label">🎯 TARGET: ${targetPrice.toFixed(1)}</span>
+          <span class="zone-label" style="font-weight:900;">${isPe ? 'PE TP' : 'CE TP'}: ₹${(sig.target1 || 0).toFixed(2)} (+35%)</span>
+        </div>
+
+        <!-- Stop Loss Zone (Red) -->
+        <div class="tn-pos-zone stop-zone" style="top:${stopTop}px;height:${Math.max(16, stopHeight)}px;">
+          <span class="zone-label">🛑 STOP LOSS: ${stopPrice.toFixed(1)}</span>
+          <span class="zone-label" style="font-weight:900;">${isPe ? 'PE SL' : 'CE SL'}: ₹${(sig.stopLoss || 0).toFixed(2)} (-28%)</span>
+        </div>
+
+        <!-- Center Entry Banner -->
+        <div class="tn-pos-entry-bar" style="top:${yEntry}px;">
+          <div class="tn-entry-tag-left">
+            <span class="tn-entry-pill ${isPe ? 'pe' : 'ce'}">${isPe ? '🔻 BUY PUT' : '🔺 BUY CALL'}</span>
+            <span>${sig.contract || 'NIFTY CONTRACT'}</span>
+          </div>
+          <div class="tn-live-pnl-pill ${isProfitable ? '' : 'neg'}">
+            ${pnlSign}₹${liveProfitPerLot.toFixed(0)} (${pnlSign}${currentDiff.toFixed(1)} pts)
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. Render Right Price Axis Sticky Badges
+  function renderAxisStickyBadges(bounds) {
     if (!axisBadgesContainer || !config.showAxisBadges) return;
 
     let badgesHtml = '';
-    const spot = marketState.spot || 0;
-
-    const addBadge = (price, label, cls) => {
-      const y = getY(price);
-      if (y >= bounds.top && y <= bounds.top + bounds.height) {
+    const addStickyBadge = (price, label, cls) => {
+      const y = priceToScreenY(price, bounds);
+      if (y !== null && y >= bounds.top && y <= bounds.top + bounds.height) {
         badgesHtml += `
           <div class="tn-price-badge ${cls}" style="top:${y}px;">
             <span>${label}:</span> <b>${price}</b>
@@ -533,19 +759,6 @@
         `;
       }
     };
-
-    if (maxCe) addBadge(maxCe, '🦈 RES', 'shark-res');
-    if (maxPe) addBadge(maxPe, '🦈 SUP', 'shark-sup');
-    if (maxPain) addBadge(maxPain, '🎯 PAIN', 'max-pain');
-    if (atm) addBadge(atm, '⚡ ATM', 'atm-strike');
-    if (sig?.spotTarget) addBadge(sig.spotTarget, '🎯 TARGET', 'signal-tp');
-    if (sig?.spotStopLoss) addBadge(sig.spotStopLoss, '🛑 SL', 'signal-sl');
-
-    axisBadgesContainer.innerHTML = badgesHtml;
-  }
-
-  function renderAxisBadgesRelative(bounds) {
-    if (!axisBadgesContainer || !config.showAxisBadges || !marketState) return;
 
     const chain = marketState.chain || [];
     let maxCe = 0, maxCeOi = 0;
@@ -559,22 +772,14 @@
     const atm = marketState.derivatives?.atmStrike || 0;
     const sig = marketState.signal;
 
-    axisBadgesContainer.innerHTML = `
-      <div class="tn-price-badge shark-res" style="top:18%;">
-        <span>🦈 RES:</span> <b>${maxCe || '--'}</b>
-      </div>
-      <div class="tn-price-badge max-pain" style="top:38%;">
-        <span>🎯 PAIN:</span> <b>${maxPain || '--'}</b>
-      </div>
-      <div class="tn-price-badge atm-strike" style="top:52%;">
-        <span>⚡ ATM:</span> <b>${atm || '--'}</b>
-      </div>
-      <div class="tn-price-badge shark-sup" style="top:74%;">
-        <span>🦈 SUP:</span> <b>${maxPe || '--'}</b>
-      </div>
-      ${sig?.spotTarget ? `<div class="tn-price-badge signal-tp" style="top:28%;"><span>🎯 TP:</span> <b>${sig.spotTarget}</b></div>` : ''}
-      ${sig?.spotStopLoss ? `<div class="tn-price-badge signal-sl" style="top:84%;"><span>🛑 SL:</span> <b>${sig.spotStopLoss}</b></div>` : ''}
-    `;
+    if (maxCe) addStickyBadge(maxCe, '🦈 RES', 'shark-res');
+    if (maxPe) addStickyBadge(maxPe, '🦈 SUP', 'shark-sup');
+    if (maxPain) addStickyBadge(maxPain, '🎯 PAIN', 'max-pain');
+    if (atm) addStickyBadge(atm, '⚡ ATM', 'atm-strike');
+    if (sig?.spotTarget) addStickyBadge(sig.spotTarget, '🎯 TP', 'signal-tp');
+    if (sig?.spotStopLoss) addStickyBadge(sig.spotStopLoss, '🛑 SL', 'signal-sl');
+
+    axisBadgesContainer.innerHTML = badgesHtml;
   }
 
   // --- Compact Option Chain Drawer Rendering ---
@@ -585,7 +790,6 @@
     const spot = marketState.spot || 0;
     const atm = marketState.derivatives?.atmStrike || Math.round(spot / 50) * 50;
     
-    // Pick 7 strikes around ATM
     const sorted = [...marketState.chain].sort((a, b) => Math.abs(a.strike - atm) - Math.abs(b.strike - atm));
     const selected = sorted.slice(0, 7).sort((a, b) => a.strike - b.strike);
 
@@ -606,12 +810,11 @@
     tbody.innerHTML = html;
   }
 
-  // --- Helper: Read TradingView Chart Coordinates & Price Scales ---
+  // --- Helper: Read TradingView Chart Bounds ---
   function getTradingViewChartBounds() {
-    // Look for TradingView chart container
     const chartWidget = document.querySelector('div[class*="chart-container"]') || 
                         document.querySelector('div[class*="chart-gui-wrapper"]') ||
-                        document.querySelector('td.chart-markup-table') ||
+                        document.querySelector('table.chart-markup-table tr td:nth-child(2)') ||
                         document.querySelector('.layout__area--center');
 
     if (!chartWidget) {
@@ -619,44 +822,17 @@
         left: 60,
         top: 50,
         width: window.innerWidth - 120,
-        height: window.innerHeight - 100,
-        visibleMinPrice: null,
-        visibleMaxPrice: null
+        height: window.innerHeight - 100
       };
     }
 
     const rect = chartWidget.getBoundingClientRect();
-
-    // Try to extract min/max price from TradingView price axis labels
-    const priceLabels = Array.from(document.querySelectorAll('div[class*="price-axis"] text, div[class*="priceAxis"] span, [data-name="legend-series-item"]'))
-      .map(el => parseFloat(el.textContent.replace(/,/g, '').trim()))
-      .filter(val => !isNaN(val) && val > 1000 && val < 100000);
-
-    let minPrice = null;
-    let maxPrice = null;
-    if (priceLabels.length >= 2) {
-      minPrice = Math.min(...priceLabels);
-      maxPrice = Math.max(...priceLabels);
-    } else if (marketState && marketState.spot) {
-      // Extrapolate reasonable visible range around spot
-      minPrice = marketState.spot - 400;
-      maxPrice = marketState.spot + 400;
-    }
-
     return {
       left: rect.left,
       top: rect.top,
-      width: rect.width - 65, // exclude right price margin
-      height: rect.height - 30, // exclude bottom time axis
-      visibleMinPrice: minPrice,
-      visibleMaxPrice: maxPrice
+      width: rect.width,
+      height: rect.height - 30 // exclude bottom time axis
     };
-  }
-
-  function setupWindowResizeListener() {
-    window.addEventListener('resize', () => {
-      renderChartPlots();
-    });
   }
 
   function playAlertBeep() {

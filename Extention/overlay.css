@@ -465,3 +465,158 @@
   font-weight: 800;
   background: rgba(0, 0, 0, 0.4);
 }
+
+/* 5. Auto-Drawn Long/Short Trade Position Box (TradingView Native Style) */
+#tradenifty-position-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 999992;
+}
+
+.tn-pos-box {
+  position: absolute;
+  border-radius: 4px;
+  overflow: visible;
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
+}
+
+.tn-pos-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  box-sizing: border-box;
+}
+
+.tn-pos-zone.target-zone {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1.5px dashed #10b981;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2) inset;
+}
+
+.tn-pos-zone.stop-zone {
+  background: rgba(244, 63, 94, 0.18);
+  border: 1.5px dashed #f43f5e;
+  box-shadow: 0 0 15px rgba(244, 63, 94, 0.2) inset;
+}
+
+.tn-pos-zone .zone-label {
+  font-family: var(--tn-font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+.tn-pos-zone.target-zone .zone-label {
+  color: #a7f3d0;
+}
+.tn-pos-zone.stop-zone .zone-label {
+  color: #fecdd3;
+}
+
+/* Center Entry Banner */
+.tn-pos-entry-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, rgba(14, 21, 38, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+  border: 1.5px solid #38bdf8;
+  border-radius: 6px;
+  padding: 4px 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.8), 0 0 10px rgba(56, 189, 248, 0.4);
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.tn-entry-tag-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--tn-font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.tn-entry-pill {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.tn-entry-pill.pe {
+  background: #f43f5e;
+  color: #fff;
+}
+.tn-entry-pill.ce {
+  background: #10b981;
+  color: #000;
+}
+
+.tn-live-pnl-pill {
+  font-family: var(--tn-font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+.tn-live-pnl-pill.neg {
+  background: rgba(244, 63, 94, 0.25);
+  color: #fb7185;
+  border-color: #f43f5e;
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.4);
+}
+
+/* In-Chart Ray Line Labels */
+.tn-line-label {
+  position: absolute;
+  left: 10px;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--tn-font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.7);
+  pointer-events: auto;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+.tn-line-label.shark-res {
+  background: rgba(255, 85, 0, 0.85);
+  border: 1px solid #ffaa00;
+}
+.tn-line-label.shark-sup {
+  background: rgba(0, 210, 255, 0.85);
+  color: #000;
+  border: 1px solid #00f0ff;
+}
+.tn-line-label.max-pain {
+  background: rgba(139, 92, 246, 0.85);
+  border: 1px solid #c084fc;
+}
+.tn-line-label.atm {
+  background: rgba(250, 204, 21, 0.85);
+  color: #000;
+  border: 1px solid #fef08a;
+}
+
